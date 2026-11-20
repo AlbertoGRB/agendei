@@ -2,15 +2,22 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { RefreshTokensService } from './refresh-tokens.service.js';
+import { RolesGuard } from './roles.guard.js';
 
 @Module({
   imports: [
     UsersModule,
+    // Limite usado no cadastro e no login: 10 tentativas por minuto por IP.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 10 }],
+      errorMessage: 'Muitas tentativas. Espere um minuto e tente de novo.',
+    }),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -25,7 +32,9 @@ import { RefreshTokensService } from './refresh-tokens.service.js';
   providers: [
     AuthService,
     RefreshTokensService,
+    // Guards globais, nesta ordem: primeiro quem é o usuário, depois o papel.
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AuthModule {}

@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -15,8 +16,10 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 import { PublicUserDto, toPublicUser } from '../users/public-user.dto.js';
 import { AuthService, type Session } from './auth.service.js';
@@ -44,9 +47,13 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
+  @UseGuards(ThrottlerGuard)
   @ApiCreatedResponse({ type: PublicUserDto })
   @ApiBadRequestResponse({ description: 'Dados inválidos' })
   @ApiConflictResponse({ description: 'E-mail já cadastrado' })
+  @ApiTooManyRequestsResponse({
+    description: 'Mais de 10 tentativas por minuto',
+  })
   async register(@Body() dto: RegisterDto): Promise<PublicUserDto> {
     const user = await this.auth.register(dto);
     return toPublicUser(user);
@@ -54,11 +61,15 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   @ApiOkResponse({
     type: AccessTokenDto,
     description: 'Também grava o cookie refresh_token',
   })
   @ApiUnauthorizedResponse({ description: 'E-mail ou senha inválidos' })
+  @ApiTooManyRequestsResponse({
+    description: 'Mais de 10 tentativas por minuto',
+  })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
