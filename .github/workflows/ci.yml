@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  # Mudança só em documentação não roda o CI.
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  pull_request:
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: Lint, tipos, testes e build da API
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: api
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: agendei
+          POSTGRES_PASSWORD: agendei
+          POSTGRES_DB: agendei
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agendei -d agendei"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://agendei:agendei@localhost:5432/agendei
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatação
+        run: npm run format:check
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Aplicar as migrações
+        run: npx prisma migrate deploy
+
+      - name: Conferir se o schema e as migrações batem
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      - name: Testes unitários
+        run: npm test
+
+      - name: Testes das rotas HTTP
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+      - name: Auditoria das dependências
+        run: npm audit --omit=dev --audit-level=high
