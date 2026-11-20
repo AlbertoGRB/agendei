@@ -14,9 +14,10 @@ export function configureApp(app: INestApplication): void {
   app.use(helmet());
 
   // Só o front do agendei chama a API pelo navegador. As credenciais
-  // liberam o envio do cookie do token de renovação.
+  // liberam o envio do cookie do token de renovação. Sem WEB_URL, a API
+  // não sobe, em vez de bloquear o front sem avisar.
   app.enableCors({
-    origin: config.get<string>('WEB_URL', 'http://localhost:5173'),
+    origin: config.getOrThrow<string>('WEB_URL'),
     credentials: true,
   });
 

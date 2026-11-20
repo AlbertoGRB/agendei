@@ -44,6 +44,7 @@ jobs:
       DATABASE_URL: postgresql://agendei:agendei@localhost:5432/agendei
       # Valor só para os testes do CI.
       JWT_SECRET: segredo-usado-so-nos-testes-do-ci
+      WEB_URL: http://localhost:5173
 
     steps:
       - uses: actions/checkout@v7

@@ -1,4 +1,6 @@
 import { Controller, Get, INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { Roles } from '../src/auth/roles.decorator.js';
@@ -72,6 +74,56 @@ describe('Guardas por papel (e2e)', () => {
 
   it('sem login, a resposta é 401, não 403', async () => {
     expect((await get('/test-roles/provider')).status).toBe(401);
+  });
+
+  describe('token adulterado não vira acesso de prestador', () => {
+    const encode = (part: object) =>
+      Buffer.from(JSON.stringify(part)).toString('base64url');
+    const clientPayload = () =>
+      JSON.parse(
+        Buffer.from(clientToken.split('.')[1], 'base64url').toString(),
+      ) as { sub: string };
+    const sign = (secret: string, exp: number) =>
+      new JwtService({ secret }).signAsync({
+        sub: clientPayload().sub,
+        role: 'PROVIDER',
+        exp,
+      });
+    const inOneMinute = () => Math.floor(Date.now() / 1000) + 60;
+    const oneMinuteAgo = () => Math.floor(Date.now() / 1000) - 60;
+
+    it('papel trocado, mantendo a assinatura original', async () => {
+      const [header, , signature] = clientToken.split('.');
+      const forged = `${header}.${encode({ ...clientPayload(), role: 'PROVIDER' })}.${signature}`;
+
+      expect((await get('/test-roles/provider', forged)).status).toBe(401);
+    });
+
+    it('token sem assinatura (alg none)', async () => {
+      const forged = `${encode({ alg: 'none', typ: 'JWT' })}.${encode({ ...clientPayload(), role: 'PROVIDER' })}.`;
+
+      expect((await get('/test-roles/provider', forged)).status).toBe(401);
+    });
+
+    it('token assinado com outro segredo', async () => {
+      const forged = await sign(
+        'outro-segredo-que-a-api-nao-conhece-123',
+        inOneMinute(),
+      );
+
+      expect((await get('/test-roles/provider', forged)).status).toBe(401);
+    });
+
+    it('token expirado, mesmo com o segredo certo', async () => {
+      const secret = app.get(ConfigService).getOrThrow<string>('JWT_SECRET');
+
+      // Controle: com o segredo certo e dentro do prazo, o token passa.
+      const valid = await sign(secret, inOneMinute());
+      expect((await get('/test-roles/provider', valid)).status).toBe(200);
+
+      const expired = await sign(secret, oneMinuteAgo());
+      expect((await get('/test-roles/provider', expired)).status).toBe(401);
+    });
   });
 });
 

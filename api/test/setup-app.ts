@@ -1,4 +1,5 @@
 import { INestApplication, Type } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
@@ -39,6 +40,16 @@ export async function createTestApp(
 
 // Apaga todos os dados do banco configurado no .env (ou no CI).
 export async function resetDatabase(app: INestApplication): Promise<void> {
+  // Proteção contra apagar um banco de verdade: só aceita banco na própria máquina.
+  const { hostname } = new URL(
+    app.get(ConfigService).getOrThrow<string>('DATABASE_URL'),
+  );
+  if (!['localhost', '127.0.0.1'].includes(hostname)) {
+    throw new Error(
+      `Os testes e2e apagam o banco. Recusado: ${hostname} não é local.`,
+    );
+  }
+
   const prisma = app.get(PrismaService);
   // O CASCADE limpa junto as tabelas que apontam para User.
   await prisma.$executeRaw`TRUNCATE TABLE "User" CASCADE`;
