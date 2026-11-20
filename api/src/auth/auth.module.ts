@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { RefreshTokensService } from './refresh-tokens.service.js';
 
 @Module({
   imports: [
@@ -21,7 +22,11 @@ import { AuthService } from './auth.service.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    AuthService,
+    RefreshTokensService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AuthModule {}
 

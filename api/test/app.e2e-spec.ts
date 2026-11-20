@@ -30,6 +30,8 @@ describe('API (e2e)', () => {
         '/health',
         '/auth/register',
         '/auth/login',
+        '/auth/refresh',
+        '/auth/logout',
         '/users/me',
       ]),
     );

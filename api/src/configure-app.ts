@@ -1,9 +1,14 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import { REFRESH_COOKIE } from './auth/auth.controller.js';
 
 // Configuração comum à API no ar e aos testes e2e, para os testes
 // rodarem a mesma aplicação que sobe no main.ts.
 export function configureApp(app: INestApplication): void {
+  // Lê o cookie do token de renovação.
+  app.use(cookieParser());
+
   app.useGlobalPipes(
     new ValidationPipe({
       // Recusa campos que o DTO não declara, em vez de só ignorar.
@@ -18,6 +23,7 @@ export function configureApp(app: INestApplication): void {
     .setDescription('API de agendamento de serviços sem horário duplicado')
     .setVersion('0.1.0')
     .addBearerAuth()
+    .addCookieAuth(REFRESH_COOKIE)
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

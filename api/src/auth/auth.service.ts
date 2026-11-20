@@ -6,6 +6,7 @@ import { UsersService } from '../users/users.service.js';
 import type { AccessTokenPayload } from './auth-user.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { RegisterDto } from './dto/register.dto.js';
+import { RefreshTokensService } from './refresh-tokens.service.js';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -15,11 +16,18 @@ const BCRYPT_ROUNDS = 10;
 const UNKNOWN_USER_HASH =
   '$2b$10$n0CrGH.rQFYXq/DjRsvR.OTbSqF/5wHJHTIbO54v/J2BHqFuM4bR.';
 
+// O token de acesso vai no corpo da resposta; o de renovação, no cookie.
+export type Session = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly users: UsersService,
     private readonly jwt: JwtService,
+    private readonly refreshTokens: RefreshTokensService,
   ) {}
 
   async register(dto: RegisterDto): Promise<User> {
@@ -33,7 +41,7 @@ export class AuthService {
     });
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string }> {
+  async login(dto: LoginDto): Promise<Session> {
     const user = await this.users.findByEmail(dto.email);
     const passwordMatches = await bcrypt.compare(
       dto.password,
@@ -43,7 +51,35 @@ export class AuthService {
       throw new UnauthorizedException('E-mail ou senha inválidos');
     }
 
+    return {
+      accessToken: await this.accessTokenFor(user),
+      refreshToken: await this.refreshTokens.issue(user.id),
+    };
+  }
+
+  async refresh(refreshToken: string | undefined): Promise<Session> {
+    const rotated = refreshToken
+      ? await this.refreshTokens.rotate(refreshToken)
+      : null;
+    const user = rotated ? await this.users.findById(rotated.userId) : null;
+    if (!rotated || !user) {
+      throw new UnauthorizedException('Sessão expirada. Entre de novo.');
+    }
+
+    return {
+      accessToken: await this.accessTokenFor(user),
+      refreshToken: rotated.newToken,
+    };
+  }
+
+  async logout(refreshToken: string | undefined): Promise<void> {
+    if (refreshToken) {
+      await this.refreshTokens.revoke(refreshToken);
+    }
+  }
+
+  private accessTokenFor(user: User): Promise<string> {
     const payload: AccessTokenPayload = { sub: user.id, role: user.role };
-    return { accessToken: await this.jwt.signAsync(payload) };
+    return this.jwt.signAsync(payload);
   }
 }
