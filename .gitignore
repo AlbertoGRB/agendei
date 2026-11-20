@@ -1,0 +1,18 @@
+# dependências
+node_modules/
+
+# build
+dist/
+*.tsbuildinfo
+
+# testes
+coverage/
+
+# variáveis de ambiente (o .env.example vai para o git)
+.env
+.env.*
+!.env.example
+
+# sistema e editor
+.DS_Store
+*.log
