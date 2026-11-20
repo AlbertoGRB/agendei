@@ -94,6 +94,11 @@ describe('Renovação da sessão e logout (e2e)', () => {
   it('recusa o token já usado e encerra as outras sessões do usuário', async () => {
     const oldCookie = await login();
     const newCookie = refreshCookie(await refresh(oldCookie));
+    // Simula o token antigo voltando um minuto depois, fora da tolerância.
+    await prisma.refreshToken.updateMany({
+      where: { revokedAt: { not: null } },
+      data: { revokedAt: new Date(Date.now() - 60_000) },
+    });
 
     const reused = await refresh(oldCookie);
     expect(reused.status).toBe(401);
@@ -103,13 +108,17 @@ describe('Renovação da sessão e logout (e2e)', () => {
     expect(afterReuse.status).toBe(401);
   });
 
-  it('duas renovações ao mesmo tempo com o mesmo token: só uma passa', async () => {
+  it('duas renovações ao mesmo tempo: só uma passa, e a sessão continua', async () => {
     const cookie = await login();
 
     const responses = await Promise.all([refresh(cookie), refresh(cookie)]);
 
     const statuses = responses.map((r) => r.status).sort((a, b) => a - b);
     expect(statuses).toEqual([200, 401]);
+
+    // Duas abas abrindo juntas não é roubo: o cookie novo continua valendo.
+    const winner = responses.find((r) => r.status === 200)!;
+    expect((await refresh(refreshCookie(winner))).status).toBe(200);
   });
 
   it('recusa token expirado', async () => {

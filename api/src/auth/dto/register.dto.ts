@@ -8,8 +8,10 @@ import {
   IsTimeZone,
   Length,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 import { Role } from '../../generated/prisma/client.js';
+import { MaxBytes } from './max-bytes.js';
 import { normalizeEmail } from './normalize-email.js';
 
 export class RegisterDto {
@@ -24,10 +26,13 @@ export class RegisterDto {
   @MaxLength(254, { message: 'E-mail inválido' })
   email: string;
 
-  // O bcrypt ignora o que passa de 72 bytes, então a senha não pode ser maior.
-  @ApiProperty({ minLength: 8, maxLength: 72 })
+  @ApiProperty({
+    minLength: 8,
+    description: 'De 8 caracteres a 72 bytes (letra com acento vale 2)',
+  })
   @IsString()
-  @Length(8, 72, { message: 'A senha deve ter entre 8 e 72 caracteres' })
+  @MinLength(8, { message: 'A senha deve ter pelo menos 8 caracteres' })
+  @MaxBytes(72, { message: 'A senha é longa demais' })
   password: string;
 
   @ApiProperty({

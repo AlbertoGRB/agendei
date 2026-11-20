@@ -70,6 +70,8 @@ describe('Cadastro e login (e2e)', () => {
     it.each([
       ['e-mail inválido', { email: 'ana' }],
       ['senha curta', { password: '1234567' }],
+      // 37 letras com acento ocupam 74 bytes, acima do que o bcrypt compara.
+      ['senha acima de 72 bytes', { password: 'é'.repeat(37) }],
       ['papel que não existe', { role: 'ADMIN' }],
       ['fuso que não existe', { timezone: 'America/Nao_Existe' }],
       ['campo que o cadastro não aceita', { passwordHash: 'x' }],
