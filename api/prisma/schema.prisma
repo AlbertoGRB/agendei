@@ -1,0 +1,122 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  // A API é ESM com resolução nodenext, que exige a extensão .js nos imports.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PROVIDER
+  CLIENT
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum NotificationType {
+  CONFIRMATION
+  CANCELLATION
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  // Fuso IANA do prestador. As datas das reservas ficam em UTC (ADR 0005).
+  timezone     String   @default("America/Sao_Paulo")
+  createdAt    DateTime @default(now())
+
+  services         Service[]
+  availabilities   Availability[]
+  providerBookings Booking[]      @relation("ProviderBookings")
+  clientBookings   Booking[]      @relation("ClientBookings")
+  refreshTokens    RefreshToken[]
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  providerId      String
+  name            String
+  durationMinutes Int
+  // Preço em centavos, para não haver erro de arredondamento (RN02).
+  priceCents      Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  provider User      @relation(fields: [providerId], references: [id])
+  bookings Booking[]
+
+  @@index([providerId])
+}
+
+model Availability {
+  id         String @id @default(cuid())
+  providerId String
+  // 0 = domingo, 6 = sábado
+  weekday    Int
+  // Horas locais do prestador, no formato HH:mm
+  startTime  String
+  endTime    String
+
+  provider User @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, weekday])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  serviceId   String
+  providerId  String
+  clientId    String
+  // timestamptz, porque a constraint de exclusão usa tstzrange (ADR 0002).
+  startsAt    DateTime      @db.Timestamptz(3)
+  endsAt      DateTime      @db.Timestamptz(3)
+  status      BookingStatus @default(CONFIRMED)
+  cancelledAt DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now())
+
+  service       Service        @relation(fields: [serviceId], references: [id])
+  provider      User           @relation("ProviderBookings", fields: [providerId], references: [id])
+  client        User           @relation("ClientBookings", fields: [clientId], references: [id])
+  notifications Notification[]
+
+  // Agenda do prestador e horários livres
+  @@index([providerId, startsAt])
+  // "Minhas reservas" do cliente
+  @@index([clientId, startsAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  // Só o hash do token, nunca o valor.
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  bookingId String
+  type      NotificationType
+  sentAt    DateTime         @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  // Impede o mesmo e-mail duas vezes para a mesma reserva (RN12).
+  @@unique([bookingId, type])
+}

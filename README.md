@@ -7,10 +7,11 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 ## Stack
 
 - API em NestJS 12 e TypeScript em modo strict
+- PostgreSQL com Prisma
 - Swagger com a documentação da API
 - Vitest e Supertest nos testes, oxlint e Prettier no código
 
-O PostgreSQL, o RabbitMQ e o front em React chegam nos próximos ciclos, conforme a [arquitetura](docs/02-arquitetura.md).
+O RabbitMQ e o front em React chegam nos próximos ciclos, conforme a [arquitetura](docs/02-arquitetura.md).
 
 ## Como rodar
 
@@ -20,7 +21,8 @@ Pré-requisitos: Node.js 22 e Docker.
 docker compose up -d   # PostgreSQL, RabbitMQ e Mailpit
 cd api
 cp .env.example .env
-npm install
+npm install            # também gera o client do Prisma
+npm run db:migrate     # cria as tabelas
 npm run start:dev
 ```
 
@@ -45,6 +47,8 @@ Rodam dentro da pasta `api/`.
 | `npm run format`     | formata o código com o Prettier              |
 | `npm test`           | roda os testes unitários                     |
 | `npm run test:e2e`   | roda os testes das rotas HTTP                |
+| `npm run db:migrate` | aplica e cria migrações do Prisma            |
+| `npm run db:studio`  | abre o Prisma Studio                         |
 
 ## Documentação
 

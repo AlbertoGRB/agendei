@@ -16,3 +16,6 @@ coverage/
 # sistema e editor
 .DS_Store
 *.log
+
+# client gerado pelo prisma generate
+api/src/generated/
