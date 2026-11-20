@@ -58,6 +58,7 @@ Rodam dentro da pasta `api/`.
 - [Arquitetura](docs/02-arquitetura.md)
 - [Plano de ação](docs/03-plano-de-acao.md)
 - [Decisões técnicas (ADRs)](docs/adr/)
+- [Revisões de ciclo](docs/ciclos.md)
 
 ## Licença
 
