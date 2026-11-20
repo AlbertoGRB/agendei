@@ -20,7 +20,7 @@ Pré-requisitos: Node.js 22 e Docker.
 ```bash
 docker compose up -d   # PostgreSQL, RabbitMQ e Mailpit
 cd api
-cp .env.example .env
+cp .env.example .env   # preencha o JWT_SECRET; o comando para gerar está no arquivo
 npm install            # também gera o client do Prisma
 npm run db:migrate     # cria as tabelas
 npm run start:dev
@@ -28,27 +28,27 @@ npm run start:dev
 
 A API sobe em <http://localhost:3000>. A documentação fica em <http://localhost:3000/docs>.
 
-| Serviço local       | Endereço                                                       |
-| ------------------- | -------------------------------------------------------------- |
-| Painel do RabbitMQ  | <http://localhost:15672> (usuário e senha `agendei`)           |
-| Caixa do Mailpit    | <http://localhost:8025>, onde chegam os e-mails do agendei     |
+| Serviço local      | Endereço                                                   |
+| ------------------ | ---------------------------------------------------------- |
+| Painel do RabbitMQ | <http://localhost:15672> (usuário e senha `agendei`)       |
+| Caixa do Mailpit   | <http://localhost:8025>, onde chegam os e-mails do agendei |
 
 ## Scripts da API
 
 Rodam dentro da pasta `api/`.
 
-| Comando              | O que faz                                    |
-| -------------------- | -------------------------------------------- |
-| `npm run start:dev`  | sobe a API e reinicia a cada alteração       |
-| `npm run build`      | gera o build em `dist/`                      |
-| `npm run start:prod` | sobe o build                                 |
-| `npm run lint`       | roda o oxlint                                |
-| `npm run typecheck`  | confere os tipos com o TypeScript            |
-| `npm run format`     | formata o código com o Prettier              |
-| `npm test`           | roda os testes unitários                     |
-| `npm run test:e2e`   | roda os testes das rotas HTTP                |
-| `npm run db:migrate` | aplica e cria migrações do Prisma            |
-| `npm run db:studio`  | abre o Prisma Studio                         |
+| Comando              | O que faz                                                                 |
+| -------------------- | ------------------------------------------------------------------------- |
+| `npm run start:dev`  | sobe a API e reinicia a cada alteração                                    |
+| `npm run build`      | gera o build em `dist/`                                                   |
+| `npm run start:prod` | sobe o build                                                              |
+| `npm run lint`       | roda o oxlint                                                             |
+| `npm run typecheck`  | confere os tipos com o TypeScript                                         |
+| `npm run format`     | formata o código com o Prettier                                           |
+| `npm test`           | roda os testes unitários                                                  |
+| `npm run test:e2e`   | roda os testes das rotas HTTP com o banco (apaga os dados do banco local) |
+| `npm run db:migrate` | aplica e cria migrações do Prisma                                         |
+| `npm run db:studio`  | abre o Prisma Studio                                                      |
 
 ## Documentação
 
