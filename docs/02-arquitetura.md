@@ -94,15 +94,15 @@ agendei/
 │   │   ├── prisma/
 │   │   ├── main.ts                # sobe a API
 │   │   └── worker.ts              # sobe o worker
-│   └── test/
+│   ├── test/
+│   └── .env.example
 ├── web/
 │   └── src/
 │       ├── pages/
 │       ├── components/
 │       ├── api/
 │       └── hooks/
-├── docker-compose.yml
-└── .env.example
+└── docker-compose.yml             # PostgreSQL, RabbitMQ e Mailpit
 ```
 
 ## 5. Modelo de dados
@@ -271,7 +271,7 @@ Escolhas sem ADR, por serem padrão de mercado: Prisma (ORM mais usado com TypeS
 
 | Ambiente | Onde | Serviços |
 |---|---|---|
-| Desenvolvimento | máquina local | Docker Compose com PostgreSQL, RabbitMQ, Mailpit, API e worker; o front roda com o servidor do Vite |
+| Desenvolvimento | máquina local | Docker Compose com PostgreSQL, RabbitMQ e Mailpit; a API e o worker rodam com npm, e o front com o servidor do Vite |
 | Produção | Railway (API, worker, PostgreSQL e RabbitMQ) e Vercel (front) | provedor SMTP configurado por variável de ambiente |
 
 Esteira do CI (GitHub Actions), a cada push: lint → checagem de tipos → testes unitários → testes de integração e de concorrência (Postgres como serviço do Actions) → build.

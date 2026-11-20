@@ -1,0 +1,45 @@
+# Serviços de apoio para o desenvolvimento local.
+# A API, o worker e o front rodam com npm, fora do Docker.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: agendei
+      POSTGRES_PASSWORD: agendei
+      POSTGRES_DB: agendei
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agendei -d agendei"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: agendei
+      RABBITMQ_DEFAULT_PASS: agendei
+    ports:
+      - "127.0.0.1:5672:5672" # AMQP, usado pela API e pelo worker
+      - "127.0.0.1:15672:15672" # painel em http://localhost:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # Recebe os e-mails do worker sem enviar para ninguém.
+  mailpit:
+    image: axllent/mailpit:v1.33
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:8025:8025" # caixa de entrada em http://localhost:8025
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

@@ -14,15 +14,22 @@ O PostgreSQL, o RabbitMQ e o front em React chegam nos próximos ciclos, conform
 
 ## Como rodar
 
-Pré-requisito: Node.js 22.
+Pré-requisitos: Node.js 22 e Docker.
 
 ```bash
+docker compose up -d   # PostgreSQL, RabbitMQ e Mailpit
 cd api
+cp .env.example .env
 npm install
 npm run start:dev
 ```
 
 A API sobe em <http://localhost:3000>. A documentação fica em <http://localhost:3000/docs>.
+
+| Serviço local       | Endereço                                                       |
+| ------------------- | -------------------------------------------------------------- |
+| Painel do RabbitMQ  | <http://localhost:15672> (usuário e senha `agendei`)           |
+| Caixa do Mailpit    | <http://localhost:8025>, onde chegam os e-mails do agendei     |
 
 ## Scripts da API
 
