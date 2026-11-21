@@ -145,3 +145,49 @@ Contratempos no caminho:
 - O ciclo 5 fecha a `v1.0.0` com o resto do front (issues 21 e 22), o seed (23), o deploy (24) e a medição com o README final (25). "Minhas reservas" e o cancelamento já estão na API desde o ciclo 3, então a issue 21 é só a tela.
 - O deploy sobe dois processos no Railway, a API e o worker, cada um com o seu comando de início.
 - As contas do Railway e da Vercel e os segredos de produção (JWT, banco, RabbitMQ e SMTP) precisam existir antes de começar a issue 24.
+
+## Ciclo 5: o resto do front, o deploy e a versão 1 (`v1.0.0`)
+
+- **Meta:** "Dá para usar tudo pelo navegador, e o projeto está no ar"
+- **Revisão:** 21/11/2026
+- **Resultado:** meta cumprida. O agendei está no ar em <https://agendei-green.vercel.app>. As issues 21 a 25 estão fechadas, em sete pull requests mergeados com o CI verde. A issue 24 virou três: o deploy e duas correções do limite de requisições, que o teste em produção pegou.
+
+### O que ficou pronto
+
+- "Minhas reservas" para o cliente, com as próximas e as anteriores, e o cancelamento com confirmação. A menos de 2 horas do início, a página explica por que não dá mais para cancelar (RN08). Cada horário aparece no fuso em que vale (RN13) (#23).
+- Front do prestador: a agenda do dia, com cancelamento; os serviços, com cadastro, edição e desativação; e os horários da semana, com aviso de horário sobreposto antes de salvar (#24).
+- Seed com duas contas de demonstração, uma prestadora e uma cliente. Rodar de novo volta as duas ao estado inicial, com as reservas em volta do dia de hoje (#25).
+- Medição do tempo de resposta (RNF01): p95 de 10,4 ms nos horários livres e de 27,4 ms na reserva, contra a meta de 300 ms. O README ganhou o GIF do fluxo e o diagrama, e as 18 rotas estão documentadas no Swagger (RNF10) (#26).
+- Deploy (#27):
+  - Railway, na região us-west2: a API, o worker, o PostgreSQL 17, o RabbitMQ e um Mailpit com senha, que recebe os e-mails.
+  - Vercel: o front, com o `/api` repassado para a API.
+  - A cada deploy, o Railway aplica as migrações e refaz as contas de demonstração antes de subir a API. A API só entra no ar quando o `/health` responde.
+- O limite de requisições conta o IP de cada cliente, tanto pela Vercel quanto pela chamada direta ao Railway, e um cabeçalho forjado não muda a conta (#28 e #29).
+- No total, a API tem 41 testes unitários e 163 de ponta a ponta, e o front tem 60. O limite de requisições passou por teste de mutação: sem a conferência do segredo, ou lendo o cabeçalho antigo, dois testes falham.
+- Conferido em produção, pelo endereço da Vercel:
+  - a rota aberta direto;
+  - login, reserva, recarregar a página sem perder a sessão e cancelamento;
+  - o cookie com `Path=/api/auth`, `SameSite=Strict`, `Secure` e `HttpOnly`;
+  - os dois e-mails saindo pela fila;
+  - o limite de logins pelos dois caminhos, também com cabeçalhos forjados.
+
+### O que não ficou e por quê
+
+- **O site no ar não manda e-mail de verdade.** Os e-mails caem num Mailpit protegido por senha. É uma demonstração com contas fictícias, e um provedor de e-mail só manda para qualquer endereço a partir de um domínio próprio verificado. Trocar é mudar as variáveis `SMTP_*` da API e do worker.
+- **O tempo de resposta não foi medido em produção.** O `npm run measure` cria um prestador e um cliente, que apareceriam na lista de prestadores do site. A medição do README é local. Em produção, cada chamada ainda passa pela Vercel antes do Railway, como a ADR 0006 previu.
+- **A reserva feita com o RabbitMQ fora do ar continua sem e-mail.** A outbox ficou fora da v1, pelo motivo do ciclo 4.
+- **As issues continuam fora do GitHub**, pelo motivo do ciclo 2.
+
+Contratempos no caminho:
+
+- A issue 25 veio antes da 24. A medição e o GIF rodam no ambiente local, e o deploy esperou as contas e os segredos de produção.
+- O modelo de PostgreSQL do Railway vem com a versão 18. Ele foi trocado para a 17 antes de subir, para bater com o Docker Compose, como o plano pede.
+- A troca de região para us-east4 esbarrou no volume do banco, criado em us-west2. Todos os serviços ficaram em us-west2, juntos do banco.
+- O primeiro build da Vercel, ainda da branch do PR, foi promovido para produção, porque o projeto não tinha nenhum. Isso deixou testar o fluxo pelo navegador antes do merge.
+- O limite de logins pela Vercel precisou de duas correções. O `TRUST_PROXY=2` do PR #27 está certo para quem chama o Railway direto, mas pela Vercel o IP que conecta no Railway é um de saída da Vercel, que muda a cada chamada. O 11º login errado pelo site passava. O #28 passou a contar o `x-vercel-forwarded-for`, junto de um cabeçalho secreto que a Vercel grava. O teste com cabeçalhos forjados mostrou que a Vercel às vezes repassa o valor que o visitante manda nesse cabeçalho. O #29 faz a Vercel copiar o IP do `x-forwarded-for` dela para um cabeçalho próprio. No meio do caminho, o `TRUST_PROXY` foi trocado para 1 por engano. Ele voltou para 2 depois que um serviço de eco mostrou os dois endereços que o Railway grava. O que mudou está na [ADR 0006](adr/0006-front-chama-a-api-pelo-mesmo-site.md).
+
+### O que fica para depois da v1
+
+- A outbox das notificações, para a reserva feita com o RabbitMQ fora do ar também ter e-mail.
+- Um domínio próprio, com o front e a API em subdomínios. Ele tira o salto pela Vercel e permite mandar e-mail de verdade.
+- A medição em produção, com contas que o seed apague depois.

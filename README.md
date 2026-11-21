@@ -2,7 +2,7 @@
 
 Agendamento de serviços sem horário duplicado. O prestador cadastra os serviços e os horários de atendimento, e o cliente escolhe um horário livre e reserva. Quem impede duas reservas no mesmo horário é o próprio banco, com uma constraint de exclusão do PostgreSQL.
 
-> Em desenvolvimento. O andamento segue o [plano de ação](docs/03-plano-de-acao.md).
+> Versão 1.0.0, com o MVP do [plano de ação](docs/03-plano-de-acao.md) completo. O que ficou pronto em cada ciclo, e o que ficou para depois, está nas [revisões de ciclo](docs/ciclos.md).
 
 **No ar em <https://agendei-green.vercel.app>.** Dá para entrar com as [contas de demonstração](#contas-de-demonstração).
 
