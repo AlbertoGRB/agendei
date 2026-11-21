@@ -11,6 +11,7 @@ import { Prisma, type Booking } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { cancellationProblem } from './cancellation.js';
+import type { AgendaDto } from './dto/agenda.dto.js';
 import type { BookingDto } from './dto/booking.dto.js';
 import type { SlotsDto } from './dto/slots.dto.js';
 import {
@@ -142,6 +143,28 @@ export class BookingsService {
       }
       throw error;
     }
+  }
+
+  // Reservas confirmadas que começam no dia, no fuso do prestador (RF06).
+  async agenda(providerId: string, date: string): Promise<AgendaDto> {
+    const provider = await this.users.findProvider(providerId);
+    if (!provider) {
+      throw new NotFoundException('Prestador não encontrado');
+    }
+    const day = localDay(date, provider.timezone);
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        providerId,
+        status: 'CONFIRMED',
+        startsAt: { gte: day.start, lt: day.end },
+      },
+      orderBy: { startsAt: 'asc' },
+    });
+    return {
+      date,
+      timezone: provider.timezone,
+      bookings: await this.toDtos(bookings),
+    };
   }
 
   // Reservas do cliente, da mais nova para a mais antiga (RF10).

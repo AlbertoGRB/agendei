@@ -1,20 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsISO8601, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { DateQueryDto } from './date-query.dto.js';
 
-export class SlotsQueryDto {
+export class SlotsQueryDto extends DateQueryDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty({ message: 'Informe o serviço' })
   serviceId: string;
-
-  @ApiProperty({
-    example: '2026-11-23',
-    description: 'Dia no fuso do prestador, no formato AAAA-MM-DD',
-  })
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'Use a data no formato AAAA-MM-DD',
-  })
-  // Recusa datas que não existem, como 30 de fevereiro.
-  @IsISO8601({ strict: true }, { message: 'Data inválida' })
-  date: string;
 }
