@@ -13,8 +13,9 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 - Guardas por papel, limite de requisições no login e no cadastro, helmet e CORS só para o front
 - Datas gravadas em UTC e interpretadas no fuso do prestador, com `@date-fns/tz`
 - Vitest e Supertest nos testes, com cobertura mínima nas regras de horário, oxlint e Prettier no código
+- Front em React com Vite, React Router, TanStack Query, React Hook Form, Zod e Tailwind, chamando a API pelo próprio endereço, em `/api`
 
-O RabbitMQ e o front em React chegam nos próximos ciclos, conforme a [arquitetura](docs/02-arquitetura.md).
+O RabbitMQ e o envio de e-mail chegam no próximo ciclo, conforme a [arquitetura](docs/02-arquitetura.md).
 
 ## Como rodar
 
@@ -30,6 +31,16 @@ npm run start:dev
 ```
 
 A API sobe em <http://localhost:3000>. A documentação fica em <http://localhost:3000/docs>.
+
+Com a API rodando, em outro terminal:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+O front sobe em <http://localhost:5173>. O servidor do Vite repassa `/api` para a API, e assim o cookie de sessão funciona ([ADR 0006](docs/adr/0006-front-chama-a-api-pelo-mesmo-site.md)).
 
 | Serviço local      | Endereço                                                   |
 | ------------------ | ---------------------------------------------------------- |
@@ -52,6 +63,19 @@ Rodam dentro da pasta `api/`.
 | `npm run test:e2e`   | roda os testes das rotas HTTP com o banco (apaga os dados do banco local) |
 | `npm run db:migrate` | aplica e cria migrações do Prisma                                         |
 | `npm run db:studio`  | abre o Prisma Studio                                                      |
+
+## Scripts do front
+
+Rodam dentro da pasta `web/`.
+
+| Comando             | O que faz                                       |
+| ------------------- | ----------------------------------------------- |
+| `npm run dev`       | sobe o front e atualiza a tela a cada alteração |
+| `npm run build`     | gera o build em `dist/`                         |
+| `npm run lint`      | roda o oxlint, com as regras de acessibilidade  |
+| `npm run typecheck` | confere os tipos com o TypeScript               |
+| `npm run format`    | formata o código com o Prettier                 |
+| `npm test`          | roda os testes das telas e do cliente da API    |
 
 ## Documentação
 
