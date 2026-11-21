@@ -33,6 +33,8 @@ describe('API (e2e)', () => {
         '/auth/refresh',
         '/auth/logout',
         '/users/me',
+        '/services',
+        '/services/{id}',
       ]),
     );
   });
