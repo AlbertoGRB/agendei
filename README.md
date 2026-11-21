@@ -26,6 +26,7 @@ cd api
 cp .env.example .env   # preencha o JWT_SECRET; o comando para gerar está no arquivo
 npm install            # também gera o client do Prisma
 npm run db:migrate     # cria as tabelas
+npm run db:seed        # cria as contas de demonstração (opcional)
 npm run start:dev
 ```
 
@@ -55,6 +56,17 @@ O front sobe em <http://localhost:5173>. O servidor do Vite repassa `/api` para 
 | Painel do RabbitMQ | <http://localhost:15672> (usuário e senha `agendei`)       |
 | Caixa do Mailpit   | <http://localhost:8025>, onde chegam os e-mails do agendei |
 
+### Contas de demonstração
+
+O `npm run db:seed` cria duas contas com dados fictícios, as duas com a senha `agendei-demo`:
+
+| Conta     | E-mail              | O que já tem                                                                                    |
+| --------- | ------------------- | ----------------------------------------------------------------------------------------------- |
+| Prestador | `ana@example.com`   | três serviços e horários de segunda a sábado                                                    |
+| Cliente   | `carla@example.com` | uma reserva no último dia útil e quatro nos dois próximos, uma delas cancelada, todas com a Ana |
+
+Rodar de novo volta as duas contas ao estado inicial, com as reservas em volta do dia de hoje. Isso também apaga as reservas que outras contas fizeram com a Ana. O resto do banco fica como está.
+
 ## Scripts da API
 
 Rodam dentro da pasta `api/`.
@@ -73,6 +85,8 @@ Rodam dentro da pasta `api/`.
 | `npm run test:e2e`          | roda os testes de integração, com o Docker Compose no ar (apaga o banco local e a caixa do Mailpit) |
 | `npm run db:migrate`        | aplica e cria migrações do Prisma                                                                   |
 | `npm run db:studio`         | abre o Prisma Studio                                                                                |
+| `npm run db:seed`           | gera o build e cria ou refaz as contas de demonstração                                              |
+| `npm run db:seed:prod`      | cria ou refaz as contas de demonstração a partir do build                                           |
 
 ## Scripts do front
 
