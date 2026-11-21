@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { cancelBooking, listMyBookings, type Booking } from '../api/bookings';
+import { listMyBookings, type Booking } from '../api/bookings';
 import { messageOf } from '../api/client';
+import { CancelBooking } from '../components/CancelBooking';
 import { FormError } from '../components/FormError';
 import { Loading } from '../components/Loading';
 import { formatWhen } from '../lib/format';
@@ -10,9 +11,6 @@ import { formatWhen } from '../lib/format';
 // O cliente cancela até 2 horas antes do início (RN08). A tela só esconde o
 // botão; quem decide é a API.
 const CANCEL_LIMIT_MS = 2 * 60 * 60_000;
-
-const secondaryButton =
-  'rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700';
 
 // Minhas reservas (RF10): as próximas primeiro, e o cancelamento (RF11).
 export function MyBookingsPage() {
@@ -169,9 +167,9 @@ function BookingItem({
             cancelada.
           </p>
         ) : (
-          <CancelControl
+          <CancelBooking
             booking={booking}
-            when={when}
+            description={`de ${booking.service.name}, ${when}`}
             onCancelled={onCancelled}
           />
         ))}
@@ -188,89 +186,5 @@ function Status({ status }: { status: Booking['status'] }) {
     <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
       Cancelada
     </span>
-  );
-}
-
-// Cancelar pede confirmação, porque não dá para desfazer.
-function CancelControl({
-  booking,
-  when,
-  onCancelled,
-}: {
-  booking: Booking;
-  when: string;
-  onCancelled: (booking: Booking) => void;
-}) {
-  const queryClient = useQueryClient();
-  const [asking, setAsking] = useState(false);
-  const askButton = useRef<HTMLButtonElement>(null);
-  const keepButton = useRef<HTMLButtonElement>(null);
-  const touched = useRef(false);
-
-  const cancel = useMutation({
-    mutationFn: () => cancelBooking(booking.id),
-    onSuccess: (result) => onCancelled(result),
-    onSettled: () => {
-      // A lista e os horários livres do prestador mudam.
-      void queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      void queryClient.invalidateQueries({ queryKey: ['slots'] });
-    },
-  });
-
-  // Ao abrir ou fechar a pergunta, o foco vai para o botão que apareceu.
-  useEffect(() => {
-    if (touched.current) {
-      (asking ? keepButton : askButton).current?.focus();
-    }
-  }, [asking]);
-
-  const toggle = (value: boolean) => {
-    touched.current = true;
-    cancel.reset();
-    setAsking(value);
-  };
-
-  return (
-    <div className="mt-3">
-      {asking ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="w-full text-sm font-medium">Cancelar esta reserva?</p>
-          <button
-            type="button"
-            disabled={cancel.isPending}
-            onClick={() => cancel.mutate()}
-            className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {cancel.isPending ? 'Cancelando…' : 'Sim, cancelar'}
-          </button>
-          <button
-            ref={keepButton}
-            type="button"
-            disabled={cancel.isPending}
-            onClick={() => toggle(false)}
-            className={secondaryButton}
-          >
-            Manter reserva
-          </button>
-        </div>
-      ) : (
-        <button
-          ref={askButton}
-          type="button"
-          onClick={() => toggle(true)}
-          className={secondaryButton}
-        >
-          Cancelar reserva{' '}
-          <span className="sr-only">
-            de {booking.service.name}, {when}
-          </span>
-        </button>
-      )}
-      {cancel.isError && (
-        <div className="mt-3">
-          <FormError message={messageOf(cancel.error)} />
-        </div>
-      )}
-    </div>
   );
 }

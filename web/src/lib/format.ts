@@ -76,3 +76,36 @@ export function dayLabel(day: string) {
     full: format({ weekday: 'long', day: 'numeric', month: 'long' }),
   };
 }
+
+// Hoje no fuso informado, no formato AAAA-MM-DD da API. O dia do prestador
+// pode não ser o mesmo do computador de quem abre a página.
+export function todayIn(timeZone: string, now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+// "2030-01-31" + 1 → "2030-02-01". Conta em UTC, sem horário de verão.
+export function addDays(day: string, amount: number): string {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, date + amount))
+    .toISOString()
+    .slice(0, 10);
+}
+
+// "50" ou "49,90" (ou "49.90") → centavos. Texto fora desse formato → null.
+export function parsePrice(text: string): number | null {
+  const match = /^(\d{1,9})(?:[,.](\d{1,2}))?$/.exec(text.trim());
+  if (!match) {
+    return null;
+  }
+  return Number(match[1]) * 100 + Number((match[2] ?? '0').padEnd(2, '0'));
+}
+
+// 4990 → "49,90", para o campo de preço.
+export function priceInput(cents: number): string {
+  return (cents / 100).toFixed(2).replace('.', ',');
+}

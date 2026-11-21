@@ -6,25 +6,23 @@ import { FormError } from '../components/FormError';
 import { Loading } from '../components/Loading';
 import { useSession } from '../hooks/useSession';
 import { formatDuration, formatPrice } from '../lib/format';
+import { ProviderHome } from './ProviderHome';
 
 export function HomePage() {
   const { user } = useSession();
   if (!user) {
     return null;
   }
+  if (user.role === 'PROVIDER') {
+    return <ProviderHome user={user} />;
+  }
 
   return (
     <section>
       <title>Início · agendei</title>
       <h1 className="text-2xl font-bold">Olá, {user.name.split(' ')[0]}</h1>
-      {user.role === 'PROVIDER' ? (
-        <p className="mt-2 text-slate-700">Você entrou como prestador.</p>
-      ) : (
-        <>
-          <h2 className="mt-6 text-lg font-semibold">Escolha um prestador</h2>
-          <ProviderList />
-        </>
-      )}
+      <h2 className="mt-6 text-lg font-semibold">Escolha um prestador</h2>
+      <ProviderList />
     </section>
   );
 }

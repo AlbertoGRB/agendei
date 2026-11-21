@@ -33,3 +33,15 @@ export function listMyBookings(): Promise<Booking[]> {
 export function cancelBooking(id: string): Promise<Booking> {
   return api(`/bookings/${encodeURIComponent(id)}/cancel`, post());
 }
+
+export type Agenda = {
+  date: string;
+  timezone: string;
+  // Só as confirmadas, em ordem de horário.
+  bookings: Booking[];
+};
+
+// Agenda do prestador num dia do fuso dele.
+export function getAgenda(date: string): Promise<Agenda> {
+  return api(`/agenda?${new URLSearchParams({ date })}`);
+}

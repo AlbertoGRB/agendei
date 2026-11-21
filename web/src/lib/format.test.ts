@@ -1,9 +1,13 @@
 import {
+  addDays,
   dayLabel,
   formatDuration,
   formatPrice,
   formatWhen,
   nextDays,
+  parsePrice,
+  priceInput,
+  todayIn,
 } from './format';
 
 describe('formatação', () => {
@@ -38,5 +42,30 @@ describe('formatação', () => {
     expect(formatWhen('2030-01-08T02:30:00.000Z', 'America/Sao_Paulo')).toBe(
       'segunda-feira, 7 de janeiro, às 23:30',
     );
+  });
+
+  it('hoje no fuso do prestador, mesmo com o computador em outro dia', () => {
+    // 1h30 de terça em UTC ainda é segunda em Brasília e em Manaus.
+    const now = new Date('2030-01-08T01:30:00.000Z');
+    expect(todayIn('America/Sao_Paulo', now)).toBe('2030-01-07');
+    expect(todayIn('America/Manaus', now)).toBe('2030-01-07');
+    expect(todayIn('Europe/Lisbon', now)).toBe('2030-01-08');
+  });
+
+  it('soma e tira dias atravessando o mês e o ano', () => {
+    expect(addDays('2030-01-31', 1)).toBe('2030-02-01');
+    expect(addDays('2030-01-01', -1)).toBe('2029-12-31');
+  });
+
+  it('preço digitado em reais vira centavos', () => {
+    expect(parsePrice('50')).toBe(5000);
+    expect(parsePrice('49,90')).toBe(4990);
+    expect(parsePrice(' 49.9 ')).toBe(4990);
+    expect(parsePrice('0')).toBe(0);
+    expect(parsePrice('')).toBeNull();
+    expect(parsePrice('-5')).toBeNull();
+    expect(parsePrice('1.234,56')).toBeNull();
+    expect(parsePrice('R$ 50')).toBeNull();
+    expect(priceInput(4990)).toBe('49,90');
   });
 });
