@@ -58,7 +58,13 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
 // Cadastra e entra, devolvendo o token de acesso.
 export async function registerAndLogin(
   app: INestApplication<App>,
-  user: { name: string; email: string; password: string; role: string },
+  user: {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+    timezone?: string;
+  },
 ): Promise<string> {
   await request(app.getHttpServer()).post('/auth/register').send(user);
   const response = await request(app.getHttpServer())

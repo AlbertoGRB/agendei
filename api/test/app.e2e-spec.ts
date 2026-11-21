@@ -38,6 +38,7 @@ describe('API (e2e)', () => {
         '/availability',
         '/providers',
         '/providers/{id}',
+        '/providers/{id}/slots',
       ]),
     );
   });
