@@ -26,6 +26,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:seed": "nest start --entryFile seed",
+    "db:seed:prod": "node dist/seed",
     "postinstall": "prisma generate"
   },
   "dependencies": {
