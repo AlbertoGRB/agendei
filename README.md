@@ -11,7 +11,8 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 - Swagger com a documentação da API
 - Login com senha em bcrypt, token de acesso de 15 minutos e renovação por cookie `httpOnly`, com rotação a cada uso
 - Guardas por papel, limite de requisições no login e no cadastro, helmet e CORS só para o front
-- Vitest e Supertest nos testes, oxlint e Prettier no código
+- Datas gravadas em UTC e interpretadas no fuso do prestador, com `@date-fns/tz`
+- Vitest e Supertest nos testes, com cobertura mínima nas regras de horário, oxlint e Prettier no código
 
 O RabbitMQ e o front em React chegam nos próximos ciclos, conforme a [arquitetura](docs/02-arquitetura.md).
 

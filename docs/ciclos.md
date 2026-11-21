@@ -44,3 +44,34 @@ Contratempos no caminho:
 - Com o repositório publicado, cada issue do ciclo 2 tem branch e pull request, e o merge só acontece com o CI verde.
 - Rodar os testes no PostgreSQL do docker-compose, e não mais no PGlite. A issue 14 traz a constraint de exclusão, que depende da extensão `btree_gist`, e ela já está disponível na imagem.
 - Anotado para o deploy (issue 24): ligar o `trust proxy` do Express, para o limite de tentativas enxergar o IP real atrás do proxy da hospedagem, e decidir o `SameSite` do cookie conforme os domínios do front e da API.
+
+## Ciclo 2: serviços, disponibilidade e horários livres (`v0.2.0`)
+
+- **Meta:** "O prestador cadastra serviços e horários, e o cliente vê os horários livres"
+- **Revisão:** 20/11/2026
+- **Resultado:** meta cumprida, issues 8 a 12 fechadas, cada uma num pull request mergeado com o CI verde.
+
+### O que ficou pronto
+
+- Serviços do prestador: criar, listar, editar e desativar. A duração é múltipla de 30 minutos, de 30 a 480 (RN01), e o preço é um inteiro de centavos (RN02). As duas regras também valem no banco, com `CHECK` numa migração escrita à mão (#8).
+- Disponibilidade semanal: salvar substitui a semana inteira, e janelas sobrepostas no mesmo dia são recusadas sem mudar nada (RN03) (#9).
+- O cliente lista os prestadores com os serviços ativos. Serviço desativado some da lista (RN10) (#10).
+- Função pura de horários livres, testada sem banco e sem relógio, e conversão entre a hora local do prestador e UTC com o `@date-fns/tz`. O CI exige no mínimo 80% de cobertura dessas regras (RNF07), e hoje elas estão em 100% (#11).
+- Rota `GET /providers/:id/slots`, que interpreta o dia e as janelas no fuso do prestador (RN13) e só conta as reservas confirmadas (RN06) (#12).
+- No total, 24 testes unitários e 95 testes de ponta a ponta. Cada regra principal passou por um teste de mutação: com a regra quebrada de propósito, um teste falha.
+
+### O que não ficou e por quê
+
+- **As issues não estão no GitHub.** O Dependabot abriu dois PRs logo depois da publicação e ficou com os números 1 e 2. Criar as issues agora deixaria um "#8" do plano diferente do #8 do GitHub. As issues continuam no [plano de ação](03-plano-de-acao.md), e cada branch e pull request cita a issue do plano.
+- **O tempo de resposta da rota de horários livres (RNF01) ainda não foi medido.** A medição está planejada para a issue 25.
+
+Contratempos no caminho:
+
+- O Dependabot sugeriu o TypeScript 7, que quebra o build, e os tipos do Node 26, num projeto que roda no Node 22. As versões maiores dos dois passaram a ser ignoradas.
+- Um teste do horário de verão falhou porque usava como "agora" uma data posterior ao dia testado, e todos os horários pareciam passados. O erro era do teste, não da função.
+
+### O que muda no próximo ciclo
+
+- A constraint de exclusão da issue 14 entra numa migração escrita à mão, como os `CHECK` deste ciclo, e o teste de concorrência (issue 16) vem logo depois dela.
+- O front começa na issue 13, e o CI ganha um job para ele.
+- Decidir na issue 13 como o cookie de renovação chega à API em produção, com front e API em domínios diferentes. Com `SameSite=Strict`, o navegador não envia o cookie entre sites. A saída mais simples é a Vercel repassar `/api` para a API, deixando front e API no mesmo domínio.

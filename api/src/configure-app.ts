@@ -36,7 +36,7 @@ export function configureApp(app: INestApplication): void {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('agendei')
     .setDescription('API de agendamento de serviços sem horário duplicado')
-    .setVersion('0.1.0')
+    .setVersion('0.2.0')
     .addBearerAuth()
     .addCookieAuth(REFRESH_COOKIE)
     .build();
