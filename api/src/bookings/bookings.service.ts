@@ -2,12 +2,19 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
-import { Prisma, type Booking } from '../generated/prisma/client.js';
+import { Prisma, type Booking, type Role } from '../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import {
+  BOOKING_CANCELLED,
+  BOOKING_CREATED,
+  type BookingEvent,
+} from '../notifications/queue.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { cancellationProblem } from './cancellation.js';
@@ -35,11 +42,14 @@ function violatesNoOverlap(error: unknown): boolean {
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
     private readonly catalog: CatalogService,
     private readonly availability: AvailabilityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Horários livres de um serviço num dia, no fuso do prestador (RF08).
@@ -123,8 +133,9 @@ export class BookingsService {
       );
     }
 
+    let booking: Booking;
     try {
-      const booking = await this.prisma.booking.create({
+      booking = await this.prisma.booking.create({
         data: {
           serviceId,
           providerId: provider.id,
@@ -135,14 +146,16 @@ export class BookingsService {
           ),
         },
       });
-      const [dto] = await this.toDtos([booking]);
-      return dto;
     } catch (error) {
       if (violatesNoOverlap(error)) {
         throw new ConflictException('Esse horário acabou de ser reservado');
       }
       throw error;
     }
+
+    await this.notify(BOOKING_CREATED, booking);
+    const [dto] = await this.toDtos([booking]);
+    return dto;
   }
 
   // Reservas confirmadas que começam no dia, no fuso do prestador (RF06).
@@ -206,8 +219,46 @@ export class BookingsService {
     const cancelled = await this.prisma.booking.findUniqueOrThrow({
       where: { id },
     });
+    await this.notify(BOOKING_CANCELLED, cancelled, user.role);
     const [dto] = await this.toDtos([cancelled]);
     return dto;
+  }
+
+  // Pede ao worker o e-mail para o cliente (RF14, RF15). Uma falha aqui não
+  // desfaz a reserva nem o cancelamento, que já estão gravados (RNF03).
+  private async notify(
+    event: BookingEvent,
+    booking: Booking,
+    cancelledBy?: Role,
+  ): Promise<void> {
+    try {
+      const [service] = await this.catalog.findByIds([booking.serviceId]);
+      const people = await this.users.findByIds([
+        booking.clientId,
+        booking.providerId,
+      ]);
+      const client = people.find((p) => p.id === booking.clientId);
+      const provider = people.find((p) => p.id === booking.providerId);
+      if (!service || !client || !provider) {
+        throw new Error('reserva sem serviço, cliente ou prestador');
+      }
+      this.notifications.publish(event, {
+        bookingId: booking.id,
+        to: client.email,
+        clientName: client.name,
+        providerName: provider.name,
+        serviceName: service.name,
+        startsAt: booking.startsAt.toISOString(),
+        timezone: provider.timezone,
+        cancelledBy,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Não foi possível pedir o e-mail da reserva ${booking.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   // Janelas de atendimento de um dia, convertidas para instantes UTC.

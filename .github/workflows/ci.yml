@@ -42,11 +42,36 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      # Fila e caixa de e-mail dos testes da notificação (mesmas imagens do
+      # docker-compose).
+      rabbitmq:
+        image: rabbitmq:4-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: agendei
+          RABBITMQ_DEFAULT_PASS: agendei
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 10
+
+      mailpit:
+        image: axllent/mailpit:v1.33
+        ports:
+          - 1025:1025
+          - 8025:8025
+
     env:
       DATABASE_URL: postgresql://agendei:agendei@localhost:5432/agendei
       # Valor só para os testes do CI.
       JWT_SECRET: segredo-usado-so-nos-testes-do-ci
       WEB_URL: http://localhost:5173
+      RABBITMQ_URL: amqp://agendei:agendei@localhost:5672
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      MAIL_FROM: "agendei <nao-responda@agendei.local>"
 
     steps:
       - uses: actions/checkout@v7
@@ -78,7 +103,7 @@ jobs:
       - name: Testes unitários, com a cobertura mínima das regras de horário
         run: npm run test:cov
 
-      - name: Testes das rotas HTTP
+      - name: Testes das rotas HTTP, da fila e do worker
         run: npm run test:e2e
 
       - name: Build

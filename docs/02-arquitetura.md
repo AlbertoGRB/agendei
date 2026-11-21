@@ -224,20 +224,19 @@ sequenceDiagram
   participant K as Worker
   participant DB as PostgreSQL
   participant M as SMTP
-  Q->>K: booking.created (bookingId, tipo, dados do e-mail)
-  K->>DB: INSERT notification (bookingId, tipo)
-  alt primeira vez
-    DB-->>K: registro criado
+  Q->>K: booking.created (bookingId e dados do e-mail)
+  K->>DB: BEGIN e INSERT notification (bookingId, tipo), ignorando se já existe
+  alt linha nova
     K->>M: envia e-mail
-    K->>DB: UPDATE sentAt
-    K-->>Q: ack
-  else já existe (chave única)
-    DB-->>K: violação da chave única
-    K-->>Q: ack sem enviar
+    M-->>K: aceito
+    K->>DB: COMMIT
+  else já existia (chave única)
+    K->>DB: COMMIT sem enviar
   end
+  K-->>Q: ack
 ```
 
-O cancelamento segue o mesmo caminho, com a mensagem `booking.cancelled` e o tipo `CANCELLATION`. Se o envio falhar, o worker devolve a mensagem à fila (até 3 tentativas) e a linha de `Notification` continua sem `sentAt`, o que permite tentar de novo sem duplicar.
+O cancelamento segue o mesmo caminho, com a mensagem `booking.cancelled` e o tipo `CANCELLATION`. Se o envio falhar, a transação é desfeita, e a linha de `Notification` some junto. O worker tenta de novo, até 3 vezes, com 2 s e 10 s de espera, e depois da terceira falha registra o erro no log e confirma a mensagem. Duas entregas da mesma mensagem ao mesmo tempo também não duplicam: a segunda espera a primeira na chave única e não insere nada ([ADR 0003](adr/0003-notificacoes-por-fila-rabbitmq.md)).
 
 ## 7. Decisões técnicas
 
