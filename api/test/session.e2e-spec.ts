@@ -56,13 +56,14 @@ describe('Renovação da sessão e logout (e2e)', () => {
     return cookie ? call.set('Cookie', cookie.split(';')[0]) : call;
   };
 
-  it('o login grava o cookie httpOnly, Secure e só para /auth', async () => {
+  it('o login grava o cookie httpOnly, Secure e só para as rotas de sessão', async () => {
     const cookie = await login();
 
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
     expect(cookie).toContain('SameSite=Strict');
-    expect(cookie).toContain('Path=/auth');
+    // O navegador vê a API em /api, pelo proxy do front (ADR 0006).
+    expect(cookie).toContain('Path=/api/auth');
   });
 
   it('o banco guarda só o hash do token de renovação', async () => {
