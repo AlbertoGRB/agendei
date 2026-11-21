@@ -21,10 +21,19 @@ export class CatalogService {
     });
   }
 
-  findActive(providerId: string, id: string): Promise<Service | null> {
+  // Sem o prestador, acha o serviço ativo de qualquer um (para reservar).
+  findActive(
+    providerId: string | undefined,
+    id: string,
+  ): Promise<Service | null> {
     return this.prisma.service.findFirst({
       where: { id, providerId, active: true },
     });
+  }
+
+  // Inclui os desativados: a reserva antiga continua mostrando o serviço.
+  findByIds(ids: string[]): Promise<Service[]> {
+    return this.prisma.service.findMany({ where: { id: { in: ids } } });
   }
 
   // Todos os serviços do prestador, inclusive os desativados.

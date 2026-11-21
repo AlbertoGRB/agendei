@@ -44,6 +44,10 @@ export class UsersService {
     return this.prisma.user.findFirst({ where: { id, role: 'PROVIDER' } });
   }
 
+  findByIds(ids: string[]): Promise<User[]> {
+    return this.prisma.user.findMany({ where: { id: { in: ids } } });
+  }
+
   findProviders(ids: string[]): Promise<User[]> {
     return this.prisma.user.findMany({
       where: { id: { in: ids }, role: 'PROVIDER' },
