@@ -11,6 +11,14 @@ updates:
     groups:
       minor-e-patch:
         update-types: [minor, patch]
+    ignore:
+      # Os tipos acompanham o Node 22, que roda no CI e em produção.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # Versão maior do TypeScript muda o compilador. A troca é avaliada à parte,
+      # não por PR automático.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
