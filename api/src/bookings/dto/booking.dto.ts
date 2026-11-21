@@ -40,6 +40,12 @@ export class BookingDto {
   @ApiProperty({ type: String, nullable: true })
   cancelledAt: string | null;
 
+  @ApiProperty({
+    example: 'America/Sao_Paulo',
+    description: 'Fuso do prestador, em que o horário da reserva vale',
+  })
+  timezone: string;
+
   @ApiProperty({ type: BookingServiceDto })
   service: BookingServiceDto;
 

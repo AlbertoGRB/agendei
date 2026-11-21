@@ -32,11 +32,13 @@ describe('Reserva (e2e)', () => {
       password: 'senha-forte-123',
       role: 'PROVIDER',
     });
+    // Carla mora em Manaus, mas a reserva vale no fuso da Ana, em Brasília.
     carla = await registerAndLogin(app, {
       name: 'Carla Dias',
       email: 'carla@exemplo.com',
       password: 'senha-forte-123',
       role: 'CLIENT',
+      timezone: 'America/Manaus',
     });
     davi = await registerAndLogin(app, {
       name: 'Davi Rocha',
@@ -86,6 +88,7 @@ describe('Reserva (e2e)', () => {
       startsAt: AT_9,
       endsAt: AT_10,
       cancelledAt: null,
+      timezone: 'America/Sao_Paulo',
       service: {
         id: serviceId,
         name: 'Corte',

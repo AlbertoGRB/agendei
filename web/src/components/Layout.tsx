@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 import { useSession } from '../hooks/useSession';
 
 export function Layout() {
@@ -16,6 +16,14 @@ export function Layout() {
           </Link>
           {user && (
             <div className="flex items-center gap-3 text-sm">
+              {user.role === 'CLIENT' && (
+                <NavLink
+                  to="/reservas"
+                  className="rounded font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 aria-[current=page]:underline"
+                >
+                  Minhas reservas
+                </NavLink>
+              )}
               <span className="hidden text-slate-600 sm:inline">
                 {user.name}
               </span>

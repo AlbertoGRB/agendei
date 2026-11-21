@@ -6,6 +6,8 @@ export type Booking = {
   startsAt: string;
   endsAt: string;
   cancelledAt: string | null;
+  // Fuso do prestador, em que o horário vale.
+  timezone: string;
   service: {
     id: string;
     name: string;
@@ -21,4 +23,13 @@ export function createBooking(
   startsAt: string,
 ): Promise<Booking> {
   return api('/bookings', post({ serviceId, startsAt }));
+}
+
+// Reservas do cliente, da mais nova para a mais antiga.
+export function listMyBookings(): Promise<Booking[]> {
+  return api('/bookings');
+}
+
+export function cancelBooking(id: string): Promise<Booking> {
+  return api(`/bookings/${encodeURIComponent(id)}/cancel`, post());
 }

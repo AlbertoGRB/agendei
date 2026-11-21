@@ -294,16 +294,19 @@ export class BookingsService {
       ...new Set(bookings.flatMap((b) => [b.providerId, b.clientId])),
     ]);
     const serviceById = new Map(services.map((s) => [s.id, s]));
-    const nameById = new Map(people.map((p) => [p.id, p.name]));
+    const personById = new Map(people.map((p) => [p.id, p]));
 
     return bookings.map((booking) => {
       const service = serviceById.get(booking.serviceId);
+      const provider = personById.get(booking.providerId);
       return {
         id: booking.id,
         status: booking.status,
         startsAt: booking.startsAt.toISOString(),
         endsAt: booking.endsAt.toISOString(),
         cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+        // O front mostra o horário no fuso do prestador (RN13).
+        timezone: provider?.timezone ?? 'America/Sao_Paulo',
         service: {
           id: booking.serviceId,
           name: service?.name ?? '',
@@ -312,11 +315,11 @@ export class BookingsService {
         },
         provider: {
           id: booking.providerId,
-          name: nameById.get(booking.providerId) ?? '',
+          name: provider?.name ?? '',
         },
         client: {
           id: booking.clientId,
-          name: nameById.get(booking.clientId) ?? '',
+          name: personById.get(booking.clientId)?.name ?? '',
         },
       };
     });

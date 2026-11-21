@@ -27,8 +27,6 @@ import {
 // Quantos dias, a partir de hoje, o cliente pode escolher.
 const DAYS_AHEAD = 14;
 
-type NewBooking = { serviceId: string; startsAt: string; timezone: string };
-
 // Reserva em 4 passos depois de escolher o prestador: serviço, dia, horário
 // e confirmar (RNF05).
 export function BookPage() {
@@ -49,8 +47,11 @@ export function BookPage() {
       serviceId && day ? () => getSlots(providerId, serviceId, day) : skipToken,
   });
   const booking = useMutation({
-    mutationFn: (choice: NewBooking) =>
+    mutationFn: (choice: { serviceId: string; startsAt: string }) =>
       createBooking(choice.serviceId, choice.startsAt),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
     onSettled: () => {
       // O horário reservado sai da lista. No 409, a lista mostra o que sobrou.
       void queryClient.invalidateQueries({ queryKey: ['slots', providerId] });
@@ -78,7 +79,6 @@ export function BookPage() {
     return (
       <Confirmed
         booking={booking.data}
-        timezone={booking.variables.timezone}
         onAgain={() => {
           booking.reset();
           setSlot(null);
@@ -204,7 +204,6 @@ export function BookPage() {
                 booking.mutate({
                   serviceId: service.id,
                   startsAt: slot,
-                  timezone,
                 })
               }
             >
@@ -264,11 +263,9 @@ function SlotPicker({
 
 function Confirmed({
   booking,
-  timezone,
   onAgain,
 }: {
   booking: Booking;
-  timezone: string;
   onAgain: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -289,7 +286,7 @@ function Confirmed({
       </h1>
       <p className="mt-2">
         {booking.service.name} com {booking.provider.name},{' '}
-        {formatWhen(booking.startsAt, timezone)}.
+        {formatWhen(booking.startsAt, booking.timezone)}.
       </p>
       <p className="mt-1 text-slate-700">
         Você vai receber a confirmação por e-mail.
@@ -298,8 +295,8 @@ function Confirmed({
         <Button type="button" onClick={onAgain}>
           Reservar outro horário
         </Button>
-        <Link to="/" className="font-semibold text-teal-800 underline">
-          Voltar ao início
+        <Link to="/reservas" className="font-semibold text-teal-800 underline">
+          Ver minhas reservas
         </Link>
       </div>
     </section>
