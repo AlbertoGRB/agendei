@@ -4,6 +4,8 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 
 > Em desenvolvimento. O andamento segue o [plano de ação](docs/03-plano-de-acao.md).
 
+**No ar em <https://agendei-green.vercel.app>.** Dá para entrar com as [contas de demonstração](#contas-de-demonstração).
+
 ![A cliente entra, escolhe serviço, dia e horário, confirma a reserva, vê a reserva na lista e recebe o e-mail de confirmação](docs/demo.gif)
 
 ## Como funciona
@@ -24,6 +26,12 @@ flowchart LR
 - Duas reservas no mesmo horário esbarram numa constraint de exclusão do PostgreSQL, mesmo quando chegam juntas ([ADR 0002](docs/adr/0002-conflito-de-horario-no-banco.md)).
 
 Os detalhes estão na [arquitetura](docs/02-arquitetura.md).
+
+### Onde roda
+
+- O front fica na Vercel. A API, o worker, o PostgreSQL e o RabbitMQ ficam no Railway.
+- A cada push na `main`, a Vercel e o Railway publicam a versão nova. Antes de subir a API, o Railway aplica as migrações e refaz as contas de demonstração, então elas voltam ao estado inicial a cada deploy.
+- Os e-mails do site no ar caem num Mailpit protegido por senha, e não numa caixa de verdade. Assim, quem testa pode usar endereços inventados.
 
 ## Stack
 

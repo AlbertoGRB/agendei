@@ -166,6 +166,49 @@ describe('Limite de requisições (e2e)', () => {
   });
 });
 
+describe('IP do cliente atrás de proxy (e2e)', () => {
+  afterEach(() => {
+    delete process.env.TRUST_PROXY;
+  });
+
+  // Dez logins errados de um IP e um de outro, como o proxy repassa.
+  async function eleventhFromAnotherIp(): Promise<number> {
+    const app = await createTestApp({ rateLimit: true });
+    try {
+      const attempt = (ip: string) =>
+        request(app.getHttpServer())
+          .post('/auth/login')
+          .set('X-Forwarded-For', ip)
+          .send({ email: 'alguem@exemplo.com', password: 'senha-errada' });
+      for (let i = 0; i < 10; i++) {
+        expect((await attempt('203.0.113.1')).status).toBe(401);
+      }
+      expect((await attempt('203.0.113.1')).status).toBe(429);
+      return (await attempt('203.0.113.2')).status;
+    } finally {
+      await app.close();
+    }
+  }
+
+  it('com TRUST_PROXY, o limite conta cada cliente separado', async () => {
+    process.env.TRUST_PROXY = '1';
+
+    expect(await eleventhFromAnotherIp()).toBe(401);
+  });
+
+  it('sem TRUST_PROXY, o X-Forwarded-For não muda o limite', async () => {
+    expect(await eleventhFromAnotherIp()).toBe(429);
+  });
+
+  it('TRUST_PROXY que não é número não deixa a API subir', async () => {
+    process.env.TRUST_PROXY = 'sim';
+
+    await expect(createTestApp()).rejects.toThrow(
+      'TRUST_PROXY deve ser o número de proxies na frente da API',
+    );
+  });
+});
+
 describe('Cabeçalhos de segurança e CORS (e2e)', () => {
   let app: INestApplication<App>;
 
