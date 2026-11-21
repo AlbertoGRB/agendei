@@ -11,16 +11,16 @@ import { REFRESH_COOKIE } from './auth/auth.controller.js';
 export function configureApp(app: INestApplication): void {
   const config = app.get(ConfigService);
 
-  // Em produção, a chamada passa pela Vercel e pelo proxy do Railway antes
-  // de chegar aqui. TRUST_PROXY diz quantos proxies há na frente da API, para
-  // o Express achar o IP do cliente no X-Forwarded-For e o limite de
-  // requisições contar por cliente, e não por proxy (ADR 0006).
+  // Em produção, o proxy do Railway fica na frente da API e troca o
+  // X-Forwarded-For pelo IP que conectou nele. TRUST_PROXY diz quantos proxies
+  // há na frente, para o Express ler esse IP em req.ip. Pela Vercel, esse IP é
+  // o da Vercel, e o do cliente vem em outro cabeçalho (auth/client-ip.ts).
   const trustProxy = config.get<string>('TRUST_PROXY');
   if (trustProxy) {
     const hops = Number(trustProxy);
     if (!Number.isInteger(hops) || hops < 1) {
       throw new Error(
-        'TRUST_PROXY deve ser o número de proxies na frente da API, como 2',
+        'TRUST_PROXY deve ser o número de proxies na frente da API, como 1',
       );
     }
     (app.getHttpAdapter().getInstance() as Express).set('trust proxy', hops);

@@ -2,6 +2,7 @@
 
 - **Situação:** aceita
 - **Data:** 2026-11-21
+- **Atualizada:** 2026-11-21, no deploy (issue 24): como a API acha o IP do cliente que chega pela Vercel
 - **Complementa:** [ADR 0004](0004-jwt-curto-e-refresh-em-cookie.md)
 
 ## Contexto
@@ -23,4 +24,14 @@ O token de renovação vai num cookie `SameSite=Strict` (ADR 0004). Com o front 
 ## Consequências
 
 - Positivas: o cookie continua `SameSite=Strict`; em produção, o navegador não faz chamada entre sites, então o CORS deixa de ser caminho da sessão; o endereço da API fica fora do código do front.
-- Negativas: cada chamada passa pela Vercel antes de chegar no Railway, um salto a mais de latência, que entra na medição da issue 25. A API passa a receber a chamada da Vercel, então o limite de requisições por IP precisa ler o IP do cliente no cabeçalho `X-Forwarded-For`, com `trust proxy` (issue 24). A renovação pelo Swagger, chamando a API direto, não leva o cookie, porque o caminho não bate; no Swagger vale o token de acesso no cabeçalho.
+- Negativas: cada chamada passa pela Vercel antes de chegar no Railway, um salto a mais de latência, que entra na medição da issue 25. A API passa a receber a chamada da Vercel, então o limite de requisições por IP precisa achar o IP do cliente em outro lugar (veja a atualização abaixo). A renovação pelo Swagger, chamando a API direto, não leva o cookie, porque o caminho não bate; no Swagger vale o token de acesso no cabeçalho.
+
+## Atualização: o IP do cliente atrás da Vercel (issue 24)
+
+A primeira versão do deploy ligou o `trust proxy` do Express com 2 saltos, a Vercel e o Railway, para ler o IP do cliente no `X-Forwarded-For`. O teste em produção mostrou que não funciona. O proxy do Railway troca o `X-Forwarded-For` pelo IP que conectou nele, e pela Vercel esse IP é um de saída da Vercel, diferente a cada chamada. Com isso, o 11º login errado seguido passava, e o limite não segurava ninguém.
+
+O que ficou:
+
+- **A API confia no `x-vercel-forwarded-for` só com o segredo.** A Vercel grava o cabeçalho `x-origin-secret` em toda chamada repassada, com o valor de uma variável de ambiente (`transforms` no `web/vercel.json`), e troca o valor que o visitante mandar. Quando ele bate com o `ORIGIN_SECRET` da API, o limite conta o IP do `x-vercel-forwarded-for`.
+- **Sem o segredo, conta o IP que chegou ao Railway**, lido com `trust proxy` de 1 salto. Quem chama o Railway direto é contado pelo próprio IP, porque o Railway troca o `X-Forwarded-For` que vier.
+- **Alternativa descartada:** recusar toda chamada sem o segredo. Fecharia o domínio do Railway, mas também o Swagger em `/docs` e o `curl` direto na API, sem ganho para o limite, que já conta o IP certo nos dois caminhos.
