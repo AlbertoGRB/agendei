@@ -1,10 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
-import userEvent, { type UserEvent } from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { screen } from '@testing-library/react';
+import { type UserEvent } from '@testing-library/user-event';
 import { setAccessToken } from './api/client';
-import { App } from './App';
 import { fakeApi, reply } from './test/fake-api';
+import { renderApp } from './test/render-app';
 
 const ANA = {
   id: 'u1',
@@ -22,17 +20,6 @@ const anaSession = {
   'POST /api/auth/refresh': () => reply(200, { accessToken: 'token-da-ana' }),
   'GET /api/users/me': () => reply(200, ANA),
 };
-
-function renderApp(path: string): UserEvent {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-  return userEvent.setup();
-}
 
 beforeEach(() => {
   setAccessToken(null);

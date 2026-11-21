@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
+import type { Role } from '../api/auth';
 import { useSession } from '../hooks/useSession';
 import { Loading } from './Loading';
 
@@ -17,6 +18,14 @@ export function RequireAuth() {
     );
   }
   return <Outlet />;
+}
+
+// Telas de um papel só, dentro do RequireAuth. Quem tem outro papel volta
+// para o início. A API recusa do mesmo jeito; aqui é só para não mostrar uma
+// tela que não serve.
+export function RequireRole({ allowed }: { allowed: Role }) {
+  const { user } = useSession();
+  return user?.role === allowed ? <Outlet /> : <Navigate to="/" replace />;
 }
 
 // Telas de entrar e de cadastro. Assim que a sessão abre, leva a pessoa para
