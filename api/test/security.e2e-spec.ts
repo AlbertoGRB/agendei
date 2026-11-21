@@ -167,18 +167,24 @@ describe('Limite de requisições (e2e)', () => {
 });
 
 describe('IP do cliente atrás de proxy (e2e)', () => {
+  const SECRET = 'segredo-de-teste-que-so-a-vercel-sabe';
+
   afterEach(() => {
     delete process.env.TRUST_PROXY;
+    delete process.env.ORIGIN_SECRET;
   });
 
-  // Dez logins errados de um IP e um de outro, como o proxy repassa.
-  async function eleventhFromAnotherIp(): Promise<number> {
+  // Dez logins errados de um cliente e um de outro. `headers` diz o que o
+  // proxy repassaria para cada IP de cliente.
+  async function eleventhFromAnotherClient(
+    headers: (ip: string) => Record<string, string>,
+  ): Promise<number> {
     const app = await createTestApp({ rateLimit: true });
     try {
       const attempt = (ip: string) =>
         request(app.getHttpServer())
           .post('/auth/login')
-          .set('X-Forwarded-For', ip)
+          .set(headers(ip))
           .send({ email: 'alguem@exemplo.com', password: 'senha-errada' });
       for (let i = 0; i < 10; i++) {
         expect((await attempt('203.0.113.1')).status).toBe(401);
@@ -189,15 +195,22 @@ describe('IP do cliente atrás de proxy (e2e)', () => {
       await app.close();
     }
   }
+  const viaRailway = (ip: string) => ({ 'X-Forwarded-For': ip });
+  const viaVercel =
+    (secret: string) =>
+    (ip: string): Record<string, string> => ({
+      'X-Origin-Secret': secret,
+      'X-Vercel-Forwarded-For': ip,
+    });
 
   it('com TRUST_PROXY, o limite conta cada cliente separado', async () => {
     process.env.TRUST_PROXY = '1';
 
-    expect(await eleventhFromAnotherIp()).toBe(401);
+    expect(await eleventhFromAnotherClient(viaRailway)).toBe(401);
   });
 
   it('sem TRUST_PROXY, o X-Forwarded-For não muda o limite', async () => {
-    expect(await eleventhFromAnotherIp()).toBe(429);
+    expect(await eleventhFromAnotherClient(viaRailway)).toBe(429);
   });
 
   it('TRUST_PROXY que não é número não deixa a API subir', async () => {
@@ -205,6 +218,32 @@ describe('IP do cliente atrás de proxy (e2e)', () => {
 
     await expect(createTestApp()).rejects.toThrow(
       'TRUST_PROXY deve ser o número de proxies na frente da API',
+    );
+  });
+
+  it('pela Vercel, com o segredo certo, conta o IP de cada cliente', async () => {
+    process.env.ORIGIN_SECRET = SECRET;
+
+    expect(await eleventhFromAnotherClient(viaVercel(SECRET))).toBe(401);
+  });
+
+  it('com o segredo errado, o IP do cabeçalho da Vercel não vale', async () => {
+    process.env.ORIGIN_SECRET = SECRET;
+
+    expect(
+      await eleventhFromAnotherClient(viaVercel(`${SECRET.slice(0, -1)}x`)),
+    ).toBe(429);
+  });
+
+  it('sem ORIGIN_SECRET na API, o cabeçalho da Vercel não vale', async () => {
+    expect(await eleventhFromAnotherClient(viaVercel(SECRET))).toBe(429);
+  });
+
+  it('ORIGIN_SECRET curto não deixa a API subir', async () => {
+    process.env.ORIGIN_SECRET = 'curto';
+
+    await expect(createTestApp()).rejects.toThrow(
+      'ORIGIN_SECRET deve ter pelo menos 32 caracteres',
     );
   });
 });

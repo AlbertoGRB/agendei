@@ -278,8 +278,10 @@ Como o deploy funciona:
 
 - A Vercel publica o front a cada push na `main`, a partir da pasta `web/`. O `web/vercel.json` repassa `/api/*` para a API no Railway e manda o resto para o `index.html`, para as rotas do React Router abrirem direto.
 - O Railway refaz a API e o worker a cada push na `main` que mexe em `api/`. Antes de subir a API, ele aplica as migrações (`prisma migrate deploy`) e refaz as contas de demonstração (`node dist/seed.js`). A API só entra no ar quando o `GET /health` responde.
-- A API recebe `TRUST_PROXY=2`, porque a chamada passa pela Vercel e pelo proxy do Railway. Assim, o limite de requisições conta o IP de cada cliente, e não o do proxy.
-- Os segredos (JWT, banco, RabbitMQ e a senha do Mailpit) ficam só nas variáveis do Railway.
+- O limite de requisições conta o IP de cada cliente pelos dois caminhos que chegam à API:
+  - Chamada direta ao Railway: o proxy do Railway troca o `X-Forwarded-For` pelo IP que conectou nele, e a API lê esse IP com `TRUST_PROXY=1`. Um `X-Forwarded-For` inventado não muda nada.
+  - Chamada pela Vercel: o IP que chega ao Railway é o de saída da Vercel, que muda a cada chamada. O IP do cliente vem no `x-vercel-forwarded-for`, e a API só confia nele quando o cabeçalho `x-origin-secret` traz o segredo de `ORIGIN_SECRET`. A Vercel grava esse cabeçalho em toda chamada repassada e troca o valor que o visitante mandar.
+- Os segredos (JWT, banco, RabbitMQ, `ORIGIN_SECRET` e a senha do Mailpit) ficam só nas variáveis do Railway e da Vercel.
 
 Esteira do CI (GitHub Actions), a cada push: lint → checagem de tipos → testes unitários → testes de integração e de concorrência (Postgres como serviço do Actions) → build.
 

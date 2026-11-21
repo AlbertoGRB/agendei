@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { clientIpTracker } from './client-ip.js';
 import { RefreshTokensService } from './refresh-tokens.service.js';
 import { RolesGuard } from './roles.guard.js';
 
@@ -14,9 +15,14 @@ import { RolesGuard } from './roles.guard.js';
   imports: [
     UsersModule,
     // Limite usado no cadastro e no login: 10 tentativas por minuto por IP.
-    ThrottlerModule.forRoot({
-      throttlers: [{ ttl: 60_000, limit: 10 }],
-      errorMessage: 'Muitas tentativas. Espere um minuto e tente de novo.',
+    // As reservas usam o mesmo guard, com o limite delas.
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [{ ttl: 60_000, limit: 10 }],
+        errorMessage: 'Muitas tentativas. Espere um minuto e tente de novo.',
+        getTracker: clientIpTracker(originSecret(config)),
+      }),
     }),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -44,6 +50,15 @@ function jwtSecret(config: ConfigService): string {
   const secret = config.get<string>('JWT_SECRET') ?? '';
   if (secret.length < 32) {
     throw new Error('Defina JWT_SECRET no .env, com pelo menos 32 caracteres');
+  }
+  return secret;
+}
+
+// Opcional: só existe no deploy, com a Vercel na frente da API.
+function originSecret(config: ConfigService): string | undefined {
+  const secret = config.get<string>('ORIGIN_SECRET') || undefined;
+  if (secret !== undefined && secret.length < 32) {
+    throw new Error('ORIGIN_SECRET deve ter pelo menos 32 caracteres');
   }
   return secret;
 }
