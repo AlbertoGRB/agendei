@@ -39,6 +39,7 @@ const confirmed = {
   startsAt: AT_9,
   endsAt: '2030-01-07T13:00:00.000Z',
   cancelledAt: null,
+  timezone: 'America/Sao_Paulo',
   service: { id: 's1', name: 'Corte', durationMinutes: 60, priceCents: 5000 },
   provider: { id: 'p1', name: 'Ana Souza' },
   client: { id: 'c1', name: 'Carla Dias' },

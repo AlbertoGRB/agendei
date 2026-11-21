@@ -4,6 +4,7 @@ import { GuestOnly, RequireAuth, RequireRole } from './components/RequireAuth';
 import { BookPage } from './pages/BookPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -19,6 +20,7 @@ export function App() {
           <Route index element={<HomePage />} />
           <Route element={<RequireRole allowed="CLIENT" />}>
             <Route path="prestadores/:providerId" element={<BookPage />} />
+            <Route path="reservas" element={<MyBookingsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFoundPage />} />
