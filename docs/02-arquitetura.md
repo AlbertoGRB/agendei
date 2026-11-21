@@ -248,6 +248,7 @@ O cancelamento segue o mesmo caminho, com a mensagem `booking.cancelled` e o tip
 | E-mail de confirmação | fila RabbitMQ e tabela de envio com chave única | [ADR 0003](adr/0003-notificacoes-por-fila-rabbitmq.md) |
 | Sessão | JWT de 15 minutos em memória e refresh em cookie, com rotação e hash no banco | [ADR 0004](adr/0004-jwt-curto-e-refresh-em-cookie.md) |
 | Datas | UTC no banco e fuso do prestador para interpretar dia e janelas | [ADR 0005](adr/0005-datas-em-utc-com-fuso-do-prestador.md) |
+| Front e API | o front chama a API no próprio domínio, em `/api`, pelo proxy do Vite e pelo rewrite da Vercel | [ADR 0006](adr/0006-front-chama-a-api-pelo-mesmo-site.md) |
 
 Escolhas sem ADR, por serem padrão de mercado: Prisma (ORM mais usado com TypeScript, com migrações), `class-validator` nos DTOs (objetos que descrevem o corpo de cada requisição), Swagger (documentação da API gerada do código), Nodemailer e Mailpit (e-mail), React Hook Form e Zod (formulários), TanStack Query (cache de dados da API no front), date-fns (datas), Vitest e Supertest (testes), oxlint (lint) e Prettier (formatação). Vitest e oxlint são o padrão do template do NestJS 12.
 
@@ -272,7 +273,7 @@ Escolhas sem ADR, por serem padrão de mercado: Prisma (ORM mais usado com TypeS
 | Ambiente | Onde | Serviços |
 |---|---|---|
 | Desenvolvimento | máquina local | Docker Compose com PostgreSQL, RabbitMQ e Mailpit; a API e o worker rodam com npm, e o front com o servidor do Vite |
-| Produção | Railway (API, worker, PostgreSQL e RabbitMQ) e Vercel (front) | provedor SMTP configurado por variável de ambiente |
+| Produção | Railway (API, worker, PostgreSQL e RabbitMQ) e Vercel (front, com rewrite de `/api` para a API) | provedor SMTP configurado por variável de ambiente |
 
 Esteira do CI (GitHub Actions), a cada push: lint → checagem de tipos → testes unitários → testes de integração e de concorrência (Postgres como serviço do Actions) → build.
 

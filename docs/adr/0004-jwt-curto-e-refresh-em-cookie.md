@@ -2,6 +2,7 @@
 
 - **Situação:** aceita
 - **Data:** 2026-11-19
+- **Complementada por:** [ADR 0006](0006-front-chama-a-api-pelo-mesmo-site.md), que põe o front e a API no mesmo site para o cookie funcionar
 
 ## Contexto
 

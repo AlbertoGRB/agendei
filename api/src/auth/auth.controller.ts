@@ -32,12 +32,14 @@ import { REFRESH_TOKEN_DAYS } from './refresh-tokens.service.js';
 export const REFRESH_COOKIE = 'refresh_token';
 
 // httpOnly: o JavaScript da página não lê o cookie (ADR 0004).
-// path /auth: o navegador só manda o cookie para as rotas de sessão.
+// path /api/auth: o navegador só manda o cookie para as rotas de sessão.
+// O front chama a API pelo próprio domínio, em /api, e o proxy tira o
+// prefixo antes de chegar aqui (ADR 0006).
 const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: true,
   sameSite: 'strict',
-  path: '/auth',
+  path: '/api/auth',
 };
 
 @ApiTags('auth')
