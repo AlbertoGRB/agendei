@@ -20,6 +20,7 @@ ALTER TABLE booking ADD CONSTRAINT booking_no_overlap
 ```
 
 - Se duas reservas sobrepostas chegam juntas, o banco aceita uma e recusa a outra com o erro `23P01`. A API converte esse erro em `409 Conflict`, com a mensagem "esse horário acabou de ser reservado".
+- Às vezes, duas reservas sobrepostas gravadas no mesmo instante ficam uma esperando a outra na constraint, e o banco desfaz uma delas com o erro `40P01` (deadlock), que o Prisma entrega como `P2034`. A API repete a gravação, até 3 vezes: a reserva que ficou pode nem se sobrepor à que foi desfeita. Esse caso apareceu no CI do ciclo 4.
 - Só reservas `CONFIRMED` entram na regra, então cancelar libera o horário.
 - A constraint não existe no schema do Prisma e entra numa migração SQL editada à mão.
 - A função de horários livres continua existindo, mas só para mostrar opções ao cliente. Quem garante a regra é o banco.

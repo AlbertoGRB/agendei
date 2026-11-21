@@ -16,6 +16,7 @@ import {
   type BookingEvent,
 } from '../notifications/queue.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { retryOnWriteConflict } from '../prisma/retry-on-write-conflict.js';
 import { UsersService } from '../users/users.service.js';
 import { cancellationProblem } from './cancellation.js';
 import type { AgendaDto } from './dto/agenda.dto.js';
@@ -135,17 +136,23 @@ export class BookingsService {
 
     let booking: Booking;
     try {
-      booking = await this.prisma.booking.create({
-        data: {
-          serviceId,
-          providerId: provider.id,
-          clientId,
-          startsAt,
-          endsAt: new Date(
-            startsAt.getTime() + service.durationMinutes * 60_000,
-          ),
-        },
-      });
+      // Reservas sobrepostas gravadas ao mesmo tempo podem travar uma
+      // esperando a outra na constraint, e o banco desfaz uma delas
+      // (deadlock). Ela é repetida: a reserva que ficou pode nem se
+      // sobrepor a ela.
+      booking = await retryOnWriteConflict(() =>
+        this.prisma.booking.create({
+          data: {
+            serviceId,
+            providerId: provider.id,
+            clientId,
+            startsAt,
+            endsAt: new Date(
+              startsAt.getTime() + service.durationMinutes * 60_000,
+            ),
+          },
+        }),
+      );
     } catch (error) {
       if (violatesNoOverlap(error)) {
         throw new ConflictException('Esse horário acabou de ser reservado');
