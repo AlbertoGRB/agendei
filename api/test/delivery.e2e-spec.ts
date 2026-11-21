@@ -128,4 +128,53 @@ describe('Envio de e-mail no worker (e2e)', () => {
     expect(send).toHaveBeenCalledTimes(4);
     expect(await records()).toHaveLength(1);
   });
+
+  // RN12: a fila pode entregar a mesma mensagem mais de uma vez.
+  describe('a mesma mensagem duas vezes', () => {
+    it('uma depois da outra: manda um e-mail só', async () => {
+      await delivery.deliver(message, 'CONFIRMATION');
+      await delivery.deliver(message, 'CONFIRMATION');
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(await records()).toHaveLength(1);
+    });
+
+    it('ao mesmo tempo: manda um e-mail só', async () => {
+      // O envio demora, então a segunda entrega chega enquanto a primeira
+      // ainda está com a transação aberta.
+      send.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 300)),
+      );
+
+      await Promise.all([
+        delivery.deliver(message, 'CONFIRMATION'),
+        delivery.deliver(message, 'CONFIRMATION'),
+      ]);
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(await records()).toHaveLength(1);
+    });
+
+    it('ao mesmo tempo, com o primeiro envio falhando: o segundo envia', async () => {
+      // A primeira entrega falha nas 3 tentativas e desfaz o registro a cada
+      // vez. A segunda, que esperava na chave única, consegue gravar e envia.
+      send
+        .mockImplementationOnce(
+          () =>
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('SMTP fora do ar')), 300),
+            ),
+        )
+        .mockResolvedValue(undefined);
+
+      await Promise.all([
+        delivery.deliver(message, 'CONFIRMATION'),
+        delivery.deliver(message, 'CONFIRMATION'),
+      ]);
+
+      expect(await records()).toHaveLength(1);
+      // Uma falha e um envio que deu certo; a outra entrega achou o registro.
+      expect(send).toHaveBeenCalledTimes(2);
+    });
+  });
 });
