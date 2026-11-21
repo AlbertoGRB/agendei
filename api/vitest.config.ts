@@ -8,10 +8,14 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
-    // RNF07: as regras de horário têm mais de 80% de cobertura. O CI roda
-    // `npm run test:cov` e falha abaixo disso.
+    // RNF07: as regras de horário e de cancelamento têm mais de 80% de
+    // cobertura. O CI roda `npm run test:cov` e falha abaixo disso.
     coverage: {
-      include: ['src/bookings/slots.ts', 'src/bookings/local-time.ts'],
+      include: [
+        'src/bookings/slots.ts',
+        'src/bookings/local-time.ts',
+        'src/bookings/cancellation.ts',
+      ],
       thresholds: { lines: 80, branches: 80, functions: 80 },
     },
   },

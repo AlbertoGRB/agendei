@@ -1,4 +1,12 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -6,6 +14,7 @@ import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
@@ -44,5 +53,34 @@ export class BookingsController {
     @Body() dto: CreateBookingDto,
   ): Promise<BookingDto> {
     return this.bookings.create(user.id, dto.serviceId, new Date(dto.startsAt));
+  }
+
+  // Minhas reservas, com o status de cada uma.
+  @Get()
+  @Roles(Role.CLIENT)
+  @ApiOkResponse({ type: [BookingDto] })
+  @ApiForbiddenResponse({ description: 'Só para cliente' })
+  list(@CurrentUser() user: AuthUser): Promise<BookingDto[]> {
+    return this.bookings.listForClient(user.id);
+  }
+
+  // O cliente cancela a própria reserva até 2 horas antes; o prestador
+  // cancela uma reserva da agenda dele antes do início (RN08).
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @Roles(Role.CLIENT, Role.PROVIDER)
+  @ApiOkResponse({ type: BookingDto })
+  @ApiNotFoundResponse({
+    description: 'Reserva não existe ou é de outra pessoa',
+  })
+  @ApiConflictResponse({
+    description:
+      'Reserva já cancelada, já começou ou, para o cliente, a menos de 2 horas do início',
+  })
+  cancel(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ): Promise<BookingDto> {
+    return this.bookings.cancel(user, id);
   }
 }
