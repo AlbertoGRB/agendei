@@ -1,6 +1,6 @@
 {
   "name": "agendei-api",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "API do agendei: agendamento de serviços sem horário duplicado",
   "private": true,
   "license": "MIT",
