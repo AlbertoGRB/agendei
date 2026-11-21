@@ -75,3 +75,37 @@ Contratempos no caminho:
 - A constraint de exclusão da issue 14 entra numa migração escrita à mão, como os `CHECK` deste ciclo, e o teste de concorrência (issue 16) vem logo depois dela.
 - O front começa na issue 13, e o CI ganha um job para ele.
 - Decidir na issue 13 como o cookie de renovação chega à API em produção, com front e API em domínios diferentes. Com `SameSite=Strict`, o navegador não envia o cookie entre sites. A saída mais simples é a Vercel repassar `/api` para a API, deixando front e API no mesmo domínio.
+
+## Ciclo 3: reservas sem horário duplicado e o front (`v0.3.0`)
+
+- **Meta:** "Reservar nunca duplica horário, e dá para criar conta e entrar pelo navegador"
+- **Revisão:** 21/11/2026
+- **Resultado:** meta cumprida. As issues 13 a 17 estão fechadas, em seis pull requests mergeados com o CI verde. A issue 13 virou dois PRs: um para a decisão do cookie e outro para o próprio front.
+
+### O que ficou pronto
+
+- Reserva com a garantia no banco. A constraint de exclusão (`tstzrange` com `btree_gist`) entra numa migração escrita à mão e recusa duas reservas confirmadas sobrepostas do mesmo prestador (RN07). A API responde `409` quando isso acontece. Antes do banco, ela confere se o horário está na agenda do prestador e ainda não passou (#10).
+- Teste de concorrência: 10 reservas ao mesmo tempo para o mesmo horário dão uma `201` e nove `409` (RNF02). Sem a constraint, as 10 passam. O teste rodou 5 vezes seguidas sem variar (#11).
+- Cancelamento com a regra das 2 horas para o cliente e até o início para o prestador (RN08). Cada um cancela só o que é seu (RN09), e dois cancelamentos ao mesmo tempo mudam a reserva uma vez só. "Minhas reservas" (`GET /bookings`) entrou junto, adiantada da issue 21 (#12).
+- Agenda do dia do prestador, com o dia contado no fuso dele. Uma reserva às 23h30 em Brasília aparece no dia certo (RN13) (#13).
+- Front e API no mesmo site: o front chama a API em `/api`, e o cookie de renovação passou para `Path=/api/auth` ([ADR 0006](adr/0006-front-chama-a-api-pelo-mesmo-site.md)) (#14).
+- Front em React com cadastro, login, sessão recuperada ao recarregar a página e renovação do token sem pedir a senha (US01). O CI ganhou um job para o front (#15).
+- No total, a API tem 31 testes unitários e 138 de ponta a ponta, e o front tem 16 testes. Cada regra nova passou por um teste de mutação.
+
+### O que não ficou e por quê
+
+- **As issues continuam fora do GitHub**, pelo mesmo motivo do ciclo 2: os números já não batem com o plano.
+- **O rewrite da Vercel e o `trust proxy` da API** dependem do endereço da API no ar. Os dois ficam para o deploy, na issue 24. Em desenvolvimento, o proxy do Vite faz o papel do rewrite, e o caminho completo foi conferido à mão: cadastro, login, cookie em `/api/auth` e renovação pelo proxy.
+- **A medição do tempo de resposta (RNF01)** continua na issue 25.
+
+Contratempos no caminho:
+
+- No Prisma 7 com o adaptador do PostgreSQL, a violação da constraint de exclusão não chega com o código `23P01` no lugar de costume. Ela vem como erro `P2039`, com o código original dentro de `meta.driverAdapterError`. Um teste descobriu o formato, e a API passou a ler o código nesse lugar.
+- O npm 10 quebra ao instalar o Vitest 5.1.0 desde que o 5.1.1 saiu. O lockfile do front foi gerado com o npm 11, e o `npm ci` do npm 10, usado no CI, instala a partir dele sem problema.
+- No merge do PR #14, o GitHub respondeu "merge em andamento" e deixou o PR aberto, mas o merge já tinha entrado. A nova tentativa gerou um commit vazio repetido no main. O conteúdo está certo, e o script de merge agora confere o main antes de tentar de novo.
+
+### O que muda no próximo ciclo
+
+- Meio dia de estudo do RabbitMQ no NestJS antes da issue 18, como o plano prevê, com uma mensagem de teste de ponta a ponta.
+- `Notification.sentAt` hoje é preenchido na criação (`@default(now())`). Para a linha registrar a tentativa antes do envio, como a arquitetura descreve, o campo precisa aceitar vazio. A mudança entra numa migração da issue 18.
+- O front segue com o fluxo do cliente (issue 20), em cima da sessão e dos componentes deste ciclo.

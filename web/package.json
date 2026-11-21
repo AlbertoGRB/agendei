@@ -1,6 +1,6 @@
 {
   "name": "agendei-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Front do agendei: telas do cliente e do prestador",
   "private": true,
   "license": "MIT",
