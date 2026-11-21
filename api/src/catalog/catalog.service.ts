@@ -12,6 +12,21 @@ export class CatalogService {
     return this.prisma.service.create({ data: { ...data, providerId } });
   }
 
+  // Serviços ativos, os únicos que o cliente vê e reserva (RN10). Sem o
+  // prestador, traz os de todos.
+  listActive(providerId?: string): Promise<Service[]> {
+    return this.prisma.service.findMany({
+      where: { active: true, providerId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  findActive(providerId: string, id: string): Promise<Service | null> {
+    return this.prisma.service.findFirst({
+      where: { id, providerId, active: true },
+    });
+  }
+
   // Todos os serviços do prestador, inclusive os desativados.
   listByProvider(providerId: string): Promise<Service[]> {
     return this.prisma.service.findMany({

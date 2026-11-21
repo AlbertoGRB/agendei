@@ -38,4 +38,16 @@ export class UsersService {
   findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }
+
+  // Id de cliente responde igual a id que não existe.
+  findProvider(id: string): Promise<User | null> {
+    return this.prisma.user.findFirst({ where: { id, role: 'PROVIDER' } });
+  }
+
+  findProviders(ids: string[]): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids }, role: 'PROVIDER' },
+      orderBy: { name: 'asc' },
+    });
+  }
 }
