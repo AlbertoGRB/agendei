@@ -4,11 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { AuthUser } from '../auth/auth-user.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { Prisma, type Booking } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
+import { cancellationProblem } from './cancellation.js';
 import type { BookingDto } from './dto/booking.dto.js';
 import type { SlotsDto } from './dto/slots.dto.js';
 import {
@@ -140,6 +142,49 @@ export class BookingsService {
       }
       throw error;
     }
+  }
+
+  // Reservas do cliente, da mais nova para a mais antiga (RF10).
+  async listForClient(clientId: string): Promise<BookingDto[]> {
+    const bookings = await this.prisma.booking.findMany({
+      where: { clientId },
+      orderBy: { startsAt: 'desc' },
+    });
+    return this.toDtos(bookings);
+  }
+
+  // Cancela uma reserva do cliente ou da agenda do prestador (RF11, RF12).
+  async cancel(user: AuthUser, id: string): Promise<BookingDto> {
+    // Cada um só cancela o que é seu. A de outra pessoa responde 404 (RN09).
+    const owner =
+      user.role === 'CLIENT' ? { clientId: user.id } : { providerId: user.id };
+    const booking = await this.prisma.booking.findFirst({
+      where: { id, ...owner },
+    });
+    if (!booking) {
+      throw new NotFoundException('Reserva não encontrada');
+    }
+
+    const now = new Date();
+    const problem = cancellationProblem(booking, user.role, now);
+    if (problem) {
+      throw new ConflictException(problem);
+    }
+    // Só cancela se ainda estiver confirmada: dois cliques ao mesmo tempo
+    // não cancelam duas vezes.
+    const { count } = await this.prisma.booking.updateMany({
+      where: { id, status: 'CONFIRMED' },
+      data: { status: 'CANCELLED', cancelledAt: now },
+    });
+    if (count === 0) {
+      throw new ConflictException('Essa reserva já foi cancelada');
+    }
+
+    const cancelled = await this.prisma.booking.findUniqueOrThrow({
+      where: { id },
+    });
+    const [dto] = await this.toDtos([cancelled]);
+    return dto;
   }
 
   // Janelas de atendimento de um dia, convertidas para instantes UTC.
