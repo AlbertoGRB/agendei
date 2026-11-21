@@ -195,16 +195,17 @@ describe('IP do cliente atrás de proxy (e2e)', () => {
       await app.close();
     }
   }
-  const viaRailway = (ip: string) => ({ 'X-Forwarded-For': ip });
+  // O proxy do Railway grava o IP que conectou nele e um endereço interno.
+  const viaRailway = (ip: string) => ({ 'X-Forwarded-For': `${ip}, 10.0.0.1` });
   const viaVercel =
     (secret: string) =>
     (ip: string): Record<string, string> => ({
       'X-Origin-Secret': secret,
-      'X-Vercel-Forwarded-For': ip,
+      'X-Agendei-Client-Ip': ip,
     });
 
   it('com TRUST_PROXY, o limite conta cada cliente separado', async () => {
-    process.env.TRUST_PROXY = '1';
+    process.env.TRUST_PROXY = '2';
 
     expect(await eleventhFromAnotherClient(viaRailway)).toBe(401);
   });
@@ -232,6 +233,18 @@ describe('IP do cliente atrás de proxy (e2e)', () => {
 
     expect(
       await eleventhFromAnotherClient(viaVercel(`${SECRET.slice(0, -1)}x`)),
+    ).toBe(429);
+  });
+
+  // A Vercel às vezes repassa o x-vercel-forwarded-for que o visitante mandou.
+  it('o X-Vercel-Forwarded-For não muda o limite, nem com o segredo', async () => {
+    process.env.ORIGIN_SECRET = SECRET;
+
+    expect(
+      await eleventhFromAnotherClient((ip) => ({
+        'X-Origin-Secret': SECRET,
+        'X-Vercel-Forwarded-For': ip,
+      })),
     ).toBe(429);
   });
 

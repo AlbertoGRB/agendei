@@ -3,8 +3,21 @@
   "routes": [
     {
       "src": "/api/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-forwarded-for",
+          "value": "(?<ip>.+)"
+        }
+      ],
       "dest": "https://api-production-aa8f4ae9.up.railway.app/$1",
       "transforms": [
+        {
+          "type": "request.headers",
+          "op": "set",
+          "target": { "key": "x-agendei-client-ip" },
+          "args": "$ip"
+        },
         {
           "type": "request.headers",
           "op": "set",
@@ -13,6 +26,10 @@
           "env": ["ORIGIN_SECRET"]
         }
       ]
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "https://api-production-aa8f4ae9.up.railway.app/$1"
     },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
