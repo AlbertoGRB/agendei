@@ -109,3 +109,39 @@ Contratempos no caminho:
 - Meio dia de estudo do RabbitMQ no NestJS antes da issue 18, como o plano prevê, com uma mensagem de teste de ponta a ponta.
 - `Notification.sentAt` hoje é preenchido na criação (`@default(now())`). Para a linha registrar a tentativa antes do envio, como a arquitetura descreve, o campo precisa aceitar vazio. A mudança entra numa migração da issue 18.
 - O front segue com o fluxo do cliente (issue 20), em cima da sessão e dos componentes deste ciclo.
+
+## Ciclo 4: e-mail pela fila e reserva pelo navegador (`v0.4.0`)
+
+- **Meta:** "O e-mail sai pela fila, e o cliente reserva pelo navegador"
+- **Revisão:** 21/11/2026
+- **Resultado:** meta cumprida. As issues 18 a 20 estão fechadas, em cinco pull requests mergeados com o CI verde: um por issue e duas correções que apareceram no caminho, uma no lockfile do front e outra num deadlock das reservas.
+
+### O que ficou pronto
+
+- Estudo do RabbitMQ no NestJS antes da issue 18, com uma mensagem de teste de ponta a ponta. O que ele mudou na decisão está na [ADR 0003](adr/0003-notificacoes-por-fila-rabbitmq.md).
+- E-mail de confirmação e de cancelamento pela fila. A API publica no RabbitMQ e responde sem esperar o envio, e com o RabbitMQ fora do ar a reserva continua respondendo `201`. Um worker no mesmo código consome a fila e envia pelo Nodemailer, com o horário no fuso do prestador. O CI ganhou o RabbitMQ e o Mailpit, e os testes leem o e-mail que chegou (#18).
+- Um e-mail só por reserva e tipo (RN12). O worker grava o registro em `Notification` e envia na mesma transação, com chave única em (`bookingId`, `type`). Os testes cobrem a mesma mensagem duas vezes, uma depois da outra, ao mesmo tempo e pela fila de verdade (#19).
+- A reserva desfeita pelo banco num deadlock é gravada de novo, em vez de responder `500` (#20).
+- Front do cliente: lista de prestadores com os serviços e reserva em 4 passos (serviço, dia, horário e confirmar), com os horários no fuso do prestador. Funciona pelo teclado e no celular. O horário que outro cliente acabou de reservar é avisado e sai da lista (#21).
+- No total, a API tem 41 testes unitários e 151 de ponta a ponta, e o front tem 29. Cada regra nova passou por um teste de mutação. O fluxo do cliente também foi conferido num navegador de verdade, em tamanho de celular e de computador.
+
+### O que não ficou e por quê
+
+- **A reserva feita com o RabbitMQ fora do ar fica sem e-mail.** A API registra o erro no log e segue. A saída completa seria uma outbox: gravar a mensagem no banco junto com a reserva e publicar depois. Ela ficou fora da v1 por custo, como a ADR 0003 registra.
+- **O rewrite da Vercel, o `trust proxy` e a medição do RNF01** continuam nas issues 24 e 25.
+- **As issues continuam fora do GitHub**, pelo motivo do ciclo 2.
+
+Contratempos no caminho:
+
+- O plano do ciclo 3 era deixar `Notification.sentAt` vazio até o envio. O estudo mostrou que gravar e enviar na mesma transação resolve sem esse estado intermediário, e a migração não foi necessária.
+- Numa fila quorum, a mensagem devolvida com `nack` volta na hora, sem limite de tentativas. As novas tentativas, até 3 e com espera entre elas, ficaram no próprio worker.
+- O CI do PR #19 pegou respostas `500` no teste de concorrência das reservas. Duas reservas sobrepostas gravadas no mesmo instante podem esperar uma pela outra, e o PostgreSQL desfaz uma delas com o código `40P01`. Num teste à parte, isso aconteceu em 253 de 1.200 inserções. A correção (#20) entrou antes do PR #19.
+- O erro de publicação do cliente RabbitMQ do NestJS traz o endereço da fila, com a senha. O log grava só o motivo.
+- O lockfile do front, gerado com o npm 11, mudava a cada `npm install` feito com o npm 10. Ele passou a ser gerado pelo npm 10 (#17).
+- A conferência no navegador achou dois detalhes que os testes não pegam: as datas encostando na borda do cartão no celular e um texto do cartão escolhido com contraste abaixo de 4,5:1. Os dois foram corrigidos antes do merge.
+
+### O que muda no próximo ciclo
+
+- O ciclo 5 fecha a `v1.0.0` com o resto do front (issues 21 e 22), o seed (23), o deploy (24) e a medição com o README final (25). "Minhas reservas" e o cancelamento já estão na API desde o ciclo 3, então a issue 21 é só a tela.
+- O deploy sobe dois processos no Railway, a API e o worker, cada um com o seu comando de início.
+- As contas do Railway e da Vercel e os segredos de produção (JWT, banco, RabbitMQ e SMTP) precisam existir antes de começar a issue 24.
