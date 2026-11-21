@@ -1,0 +1,48 @@
+{
+  "name": "agendei-web",
+  "version": "0.2.0",
+  "description": "Front do agendei: telas do cliente e do prestador",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src/",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{ts,html}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{ts,html}\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "7.0.3",
+    "@tanstack/react-query": "5.107.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-hook-form": "7.91.0",
+    "react-router": "8.5.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "jsdom": "31.0.0",
+    "oxlint": "1.92.0",
+    "prettier": "3.9.10",
+    "tailwindcss": "4.3.5",
+    "typescript": "6.0.3",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  }
+}
