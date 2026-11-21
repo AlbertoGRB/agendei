@@ -13,9 +13,8 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 - Guardas por papel, limite de requisições no login e no cadastro, helmet e CORS só para o front
 - Datas gravadas em UTC e interpretadas no fuso do prestador, com `@date-fns/tz`
 - Vitest e Supertest nos testes, com cobertura mínima nas regras de horário, oxlint e Prettier no código
+- E-mail de confirmação e de cancelamento por fila no RabbitMQ: a API publica e responde na hora, e um worker no mesmo código envia com o Nodemailer, uma vez só por reserva e tipo ([ADR 0003](docs/adr/0003-notificacoes-por-fila-rabbitmq.md))
 - Front em React com Vite, React Router, TanStack Query, React Hook Form, Zod e Tailwind, chamando a API pelo próprio endereço, em `/api`
-
-O RabbitMQ e o envio de e-mail chegam no próximo ciclo, conforme a [arquitetura](docs/02-arquitetura.md).
 
 ## Como rodar
 
@@ -31,6 +30,15 @@ npm run start:dev
 ```
 
 A API sobe em <http://localhost:3000>. A documentação fica em <http://localhost:3000/docs>.
+
+O worker, que manda os e-mails, roda em outro terminal:
+
+```bash
+cd api
+npm run start:worker
+```
+
+Sem o worker, a reserva funciona do mesmo jeito: as mensagens esperam na fila e os e-mails saem quando ele subir.
 
 Com a API rodando, em outro terminal:
 
@@ -51,18 +59,20 @@ O front sobe em <http://localhost:5173>. O servidor do Vite repassa `/api` para 
 
 Rodam dentro da pasta `api/`.
 
-| Comando              | O que faz                                                                 |
-| -------------------- | ------------------------------------------------------------------------- |
-| `npm run start:dev`  | sobe a API e reinicia a cada alteração                                    |
-| `npm run build`      | gera o build em `dist/`                                                   |
-| `npm run start:prod` | sobe o build                                                              |
-| `npm run lint`       | roda o oxlint                                                             |
-| `npm run typecheck`  | confere os tipos com o TypeScript                                         |
-| `npm run format`     | formata o código com o Prettier                                           |
-| `npm test`           | roda os testes unitários                                                  |
-| `npm run test:e2e`   | roda os testes das rotas HTTP com o banco (apaga os dados do banco local) |
-| `npm run db:migrate` | aplica e cria migrações do Prisma                                         |
-| `npm run db:studio`  | abre o Prisma Studio                                                      |
+| Comando                     | O que faz                                                                                           |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `npm run start:dev`         | sobe a API e reinicia a cada alteração                                                              |
+| `npm run build`             | gera o build em `dist/`                                                                             |
+| `npm run start:prod`        | sobe o build                                                                                        |
+| `npm run start:worker`      | gera o build e sobe o worker dos e-mails                                                            |
+| `npm run start:worker:prod` | sobe o worker a partir do build                                                                     |
+| `npm run lint`              | roda o oxlint                                                                                       |
+| `npm run typecheck`         | confere os tipos com o TypeScript                                                                   |
+| `npm run format`            | formata o código com o Prettier                                                                     |
+| `npm test`                  | roda os testes unitários                                                                            |
+| `npm run test:e2e`          | roda os testes de integração, com o Docker Compose no ar (apaga o banco local e a caixa do Mailpit) |
+| `npm run db:migrate`        | aplica e cria migrações do Prisma                                                                   |
+| `npm run db:studio`         | abre o Prisma Studio                                                                                |
 
 ## Scripts do front
 
