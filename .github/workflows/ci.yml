@@ -75,8 +75,8 @@ jobs:
       - name: Conferir se o schema e as migrações batem
         run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
 
-      - name: Testes unitários
-        run: npm test
+      - name: Testes unitários, com a cobertura mínima das regras de horário
+        run: npm run test:cov
 
       - name: Testes das rotas HTTP
         run: npm run test:e2e
