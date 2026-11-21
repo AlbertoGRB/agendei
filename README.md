@@ -4,6 +4,27 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 
 > Em desenvolvimento. O andamento segue o [plano de ação](docs/03-plano-de-acao.md).
 
+![A cliente entra, escolhe serviço, dia e horário, confirma a reserva, vê a reserva na lista e recebe o e-mail de confirmação](docs/demo.gif)
+
+## Como funciona
+
+```mermaid
+flowchart LR
+  B[Navegador] -->|telas| F[Front React]
+  B -->|/api, no mesmo site do front| A[API NestJS]
+  A -->|Prisma| DB[(PostgreSQL)]
+  A -->|publica a reserva e o cancelamento| Q[[RabbitMQ]]
+  Q -->|consome| K[Worker NestJS]
+  K -->|registra o envio| DB
+  K -->|SMTP| M[E-mail]
+```
+
+- A API responde a reserva sem esperar o e-mail: ela grava, publica a mensagem na fila e devolve. O worker, que é o mesmo código com outro ponto de entrada, manda o e-mail depois.
+- O front chama a API pelo próprio endereço, em `/api`, para o cookie de sessão continuar `SameSite=Strict` ([ADR 0006](docs/adr/0006-front-chama-a-api-pelo-mesmo-site.md)).
+- Duas reservas no mesmo horário esbarram numa constraint de exclusão do PostgreSQL, mesmo quando chegam juntas ([ADR 0002](docs/adr/0002-conflito-de-horario-no-banco.md)).
+
+Os detalhes estão na [arquitetura](docs/02-arquitetura.md).
+
 ## Stack
 
 - API em NestJS 12 e TypeScript em modo strict
@@ -87,6 +108,18 @@ Rodam dentro da pasta `api/`.
 | `npm run db:studio`         | abre o Prisma Studio                                                                                |
 | `npm run db:seed`           | gera o build e cria ou refaz as contas de demonstração                                              |
 | `npm run db:seed:prod`      | cria ou refaz as contas de demonstração a partir do build                                           |
+| `npm run measure`           | mede o tempo de resposta da API que estiver rodando (veja [Desempenho](#desempenho))                |
+
+## Desempenho
+
+O requisito é responder em menos de 300 ms no p95, com o banco local, nas duas rotas mais usadas (RNF01). Com a API a partir do build (`npm run start:prod`) e o worker rodando, o `npm run measure` cria um prestador e um cliente, faz uma chamada de cada vez e mede do envio ao fim da resposta:
+
+| Rota                       | Chamadas | Mediana | p95     | Máximo  |
+| -------------------------- | -------- | ------- | ------- | ------- |
+| `GET /providers/:id/slots` | 300      | 7,8 ms  | 10,4 ms | 15,3 ms |
+| `POST /bookings`           | 100      | 17,7 ms | 27,4 ms | 43,6 ms |
+
+Medido em 21/11/2026, num notebook com Intel Core i7-13620H, 32 GB de RAM e Windows 11, com o Node.js 22 e o PostgreSQL 17 e o RabbitMQ 4 no Docker Compose. A reserva inclui a gravação com a constraint de exclusão e a publicação na fila. Ela é medida a uma chamada a cada 2,1 s, porque a rota aceita 30 reservas por minuto de cada IP.
 
 ## Scripts do front
 
