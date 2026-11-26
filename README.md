@@ -8,6 +8,12 @@ Agendamento de serviços sem horário duplicado. O prestador cadastra os serviç
 
 ![A cliente entra, escolhe serviço, dia e horário, confirma a reserva, vê a reserva na lista e recebe o e-mail de confirmação](docs/demo.gif)
 
+## Como o Agendei evita reservas duplicadas
+
+O [teste de integração](api/test/concurrency.e2e-spec.ts) envia **10 pedidos simultâneos para o mesmo horário**. O resultado esperado é **1 reserva confirmada (`201`) e 9 conflitos (`409`)**. A garantia está no PostgreSQL: uma restrição de exclusão impede a sobreposição de reservas confirmadas para o mesmo prestador.
+
+[Leia a decisão técnica e as alternativas consideradas](docs/adr/0002-conflito-de-horario-no-banco.md).
+
 ## Como funciona
 
 ```mermaid
